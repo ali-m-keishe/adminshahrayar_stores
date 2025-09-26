@@ -1,0 +1,32 @@
+name: adminshahrayar
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0' # It's good practice to define a range
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  fl_chart: ^0.68.0 
+  flutter_riverpod: ^2.5.1
+  audioplayers: ^6.0.0 
+  uuid: ^4.4.0
+  timeago: ^3.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0 # Updated to a more recent version
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/sounds/
