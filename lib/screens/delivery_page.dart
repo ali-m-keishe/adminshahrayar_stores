@@ -11,15 +11,12 @@ class DeliveryPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch both providers to get the data we need
-    final allOrders = ref.watch(ordersProvider).orders;
+    final allOrders = ref.watch(ordersProvider).valueOrNull?.orders ?? [];
     final drivers = ref.watch(driversProvider);
 
     // Filter the orders to find the ones ready for delivery but unassigned
     final unassignedOrders = allOrders
-        .where((o) =>
-            o.type == OrderType.Delivery &&
-            o.status == OrderStatus.Completed &&
-            o.driverId == null)
+        .where((o) => o.status.toLowerCase() == 'done')
         .toList();
 
     return SingleChildScrollView(
@@ -75,7 +72,7 @@ class DeliveryPage extends ConsumerWidget {
                       children: [
                         _UnassignedOrdersCard(orders: unassignedOrders),
                         const SizedBox(height: 24),
-                        _DriversCard(drivers: drivers),
+                        _DriversCard(drivers: drivers.valueOrNull ?? []),
                       ],
                     ),
                   ),
@@ -113,10 +110,10 @@ class _UnassignedOrdersCard extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final order = orders[index];
                         return ListTile(
-                          title: Text(order.id,
+                          title: Text(order.id.toString(),
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(order.customer),
+                          subtitle: Text('Cart ${order.cartId}'),
                           trailing: ElevatedButton(
                             onPressed: () {},
                             child: const Text('Assign'),

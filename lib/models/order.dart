@@ -10,73 +10,109 @@ class OrderItem {
     required this.quantity,
     this.modifiers = const [],
   });
+
+  // JSON serialization methods
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    return OrderItem(
+      itemName: json['item_name'] ?? '',
+      quantity: json['quantity'] ?? 0,
+      modifiers: List<String>.from(json['modifiers'] ?? []),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'item_name': itemName,
+      'quantity': quantity,
+      'modifiers': modifiers,
+    };
+  }
 }
 
-enum OrderStatus { Pending, Preparing, Completed, Cancelled }
-
-enum OrderType { Pickup, Delivery }
+// Note: legacy enums kept previously have been removed. Status is now a
+// Supabase string: 'pending' | 'on the way' | 'done'.
 
 class Order {
-  final String id;
-  final String customer;
-  final List<OrderItem> items;
-  final OrderStatus status;
-  final DateTime createdAt; // It must be 'createdAt' of type DateTime
-  final OrderType type;
-  final String? driverId;
+  final int id;
+  final int cartId;
+  final String status;
+  final String paymentToken;
+  final int addressId;
+  final DateTime createdAt;
 
   Order({
     required this.id,
-    required this.customer,
-    required this.items,
+    required this.cartId,
     required this.status,
-    required this.createdAt, // not 'time'
-    required this.type,
-    this.driverId,
+    required this.paymentToken,
+    required this.addressId,
+    required this.createdAt,
   });
 
-  double get total {
-    return items.fold(0, (sum, item) => sum + (item.quantity * 15.50));
+  // JSON serialization methods
+  factory Order.fromJson(Map<String, dynamic> json) {
+    return Order(
+      id: json['id'] ?? 0,
+      cartId: json['cart_id'] ?? 0,
+      status: json['status'] ?? '',
+      paymentToken: json['payment_token'] ?? '',
+      addressId: json['address_id'] ?? 0,
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'cart_id': cartId,
+      'status': status,
+      'payment_token': paymentToken,
+      'address_id': addressId,
+      'created_at': createdAt.toIso8601String(),
+    };
   }
 }
 
 // Mock data using the correct structure
 final List<Order> mockOrders = [
   Order(
-      id: '#84321',
-      customer: 'John Doe',
-      items: [OrderItem(itemName: 'Margherita Pizza', quantity: 1)],
-      status: OrderStatus.Completed,
-      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
-      type: OrderType.Delivery,
-      driverId: null),
+    id: 1,
+    cartId: 1,
+    status: 'done',
+    paymentToken: 'tok_123456789',
+    addressId: 1,
+    createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+  ),
   Order(
-      id: '#84320',
-      customer: 'Jane Smith',
-      items: [OrderItem(itemName: 'Classic Burger', quantity: 2)],
-      status: OrderStatus.Pending,
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      type: OrderType.Pickup),
+    id: 2,
+    cartId: 2,
+    status: 'pending',
+    paymentToken: 'tok_987654321',
+    addressId: 2,
+    createdAt: DateTime.now().subtract(const Duration(days: 3)),
+  ),
   Order(
-      id: '#84319',
-      customer: 'Peter Jones',
-      items: [OrderItem(itemName: 'Caesar Salad', quantity: 1)],
-      status: OrderStatus.Completed,
-      createdAt: DateTime.now().subtract(const Duration(days: 8)),
-      type: OrderType.Pickup),
+    id: 3,
+    cartId: 3,
+    status: 'done',
+    paymentToken: 'tok_555666777',
+    addressId: 3,
+    createdAt: DateTime.now().subtract(const Duration(days: 8)),
+  ),
   Order(
-      id: '#84318',
-      customer: 'Mary Johnson',
-      items: [OrderItem(itemName: 'Spaghetti Carbonara', quantity: 1)],
-      status: OrderStatus.Completed,
-      createdAt: DateTime.now().subtract(const Duration(days: 40)),
-      type: OrderType.Delivery,
-      driverId: 'd2'),
+    id: 4,
+    cartId: 4,
+    status: 'done',
+    paymentToken: 'tok_111222333',
+    addressId: 4,
+    createdAt: DateTime.now().subtract(const Duration(days: 40)),
+  ),
   Order(
-      id: '#84317',
-      customer: 'Chris Lee',
-      items: [OrderItem(itemName: 'Chocolate Lava Cake', quantity: 2)],
-      status: OrderStatus.Cancelled,
-      createdAt: DateTime.now().subtract(const Duration(days: 400)),
-      type: OrderType.Delivery),
+    id: 5,
+    cartId: 5,
+    status: 'on the way',
+    paymentToken: 'tok_444555666',
+    addressId: 5,
+    createdAt: DateTime.now().subtract(const Duration(days: 400)),
+  ),
 ];

@@ -2,30 +2,24 @@ import 'package:adminshahrayar/models/order.dart';
 import 'package:flutter/material.dart';
 
 class OrderStatusBadge extends StatelessWidget {
-  final OrderStatus status;
-  const OrderStatusBadge({super.key, required this.status});
+  final String status; // uses Supabase string: 'pending' | 'on the way' | 'done'
+  const OrderStatusBadge.fromString(this.status, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    String text;
-    switch (status) {
-      case OrderStatus.Pending:
-        color = Colors.orange;
-        text = 'Pending';
-        break;
-      case OrderStatus.Preparing:
-        color = Colors.blue;
-        text = 'Preparing';
-        break;
-      case OrderStatus.Completed:
-        color = Colors.green;
-        text = 'Completed';
-        break;
-      case OrderStatus.Cancelled:
-        color = Colors.red;
-        text = 'Cancelled';
-        break;
+    final normalized = status.toLowerCase();
+    late Color color;
+    late String text;
+    if (normalized == 'pending') {
+      color = Colors.orange;
+      text = 'Pending';
+    } else if (normalized == 'on the way') {
+      color = Colors.blue;
+      text = 'On the way';
+    } else {
+      // done
+      color = Colors.green;
+      text = 'Done';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

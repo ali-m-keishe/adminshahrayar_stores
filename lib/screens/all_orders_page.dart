@@ -16,7 +16,7 @@ class AllOrdersPage extends ConsumerWidget {
     // We now watch our NEW filtered provider for the list to display
     final filteredOrders = ref.watch(filteredOrdersProvider);
     // We still need the full list for the search delegate
-    final allOrders = ref.watch(ordersProvider).orders;
+    final allOrders = ref.watch(ordersProvider).valueOrNull?.orders ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -52,43 +52,23 @@ class AllOrdersPage extends ConsumerWidget {
                 width: double.infinity,
                 child: DataTable(
                   columns: const [
-                    DataColumn(label: Text('Order ID')),
-                    DataColumn(label: Text('Customer')),
-                    DataColumn(label: Text('Date')),
-                    DataColumn(label: Text('Type')),
-                    DataColumn(label: Text('Status')),
-                    DataColumn(label: Text('Total')),
-                    DataColumn(label: Text('Actions')),
+                    DataColumn(label: Text('id')),
+                    DataColumn(label: Text('created_at')),
+                    DataColumn(label: Text('cart_id')),
+                    DataColumn(label: Text('status')),
+                    DataColumn(label: Text('payment_token')),
+                    DataColumn(label: Text('address_id')),
                   ],
                   // Use the filtered list to build the rows
                   rows: filteredOrders.map((order) {
                     return DataRow(cells: [
-                      DataCell(Text(order.id,
+                      DataCell(Text(order.id.toString(),
                           style: const TextStyle(fontWeight: FontWeight.bold))),
-                      DataCell(Text(order.customer)),
-                      // Use the timeago package to format the date
                       DataCell(Text(timeago.format(order.createdAt))),
-                      DataCell(Chip(
-                        label: Text(order.type.name),
-                        backgroundColor: order.type == OrderType.Delivery
-                            ? Colors.blue.withOpacity(0.2)
-                            : Colors.purple.withOpacity(0.2),
-                        labelStyle: TextStyle(
-                            color: order.type == OrderType.Delivery
-                                ? Colors.blue.shade800
-                                : Colors.purple.shade800,
-                            fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                      )),
-                      DataCell(OrderStatusBadge(status: order.status)),
-                      DataCell(Text('\$${order.total.toStringAsFixed(2)}')),
-                      DataCell(
-                        IconButton(
-                          icon: const Icon(Icons.visibility),
-                          tooltip: 'View Details',
-                          onPressed: () => _showOrderDetails(context, order),
-                        ),
-                      ),
+                      DataCell(Text(order.cartId.toString())),
+                      DataCell(OrderStatusBadge.fromString(order.status)),
+                      DataCell(Text(order.paymentToken)),
+                      DataCell(Text(order.addressId.toString())),
                     ]);
                   }).toList(),
                 ),

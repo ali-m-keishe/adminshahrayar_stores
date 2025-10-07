@@ -31,10 +31,10 @@ class _AddEditMenuItemDialogState extends State<AddEditMenuItemDialog> {
     _priceController =
         TextEditingController(text: widget.menuItem?.price.toString() ?? '');
     _imageUrlController =
-        TextEditingController(text: widget.menuItem?.imageUrl ?? '');
+        TextEditingController(text: widget.menuItem?.image ?? '');
 
     // Set a default category if adding, or the item's category if editing.
-    _selectedCategory = widget.menuItem?.category ??
+    _selectedCategory = widget.menuItem?.categoryId.toString() ??
         widget.categories.firstWhere((c) => c != 'All');
   }
 
@@ -51,10 +51,13 @@ class _AddEditMenuItemDialogState extends State<AddEditMenuItemDialog> {
     // Validate the form before proceeding.
     if (_formKey.currentState!.validate()) {
       final newMenuItem = MenuItem(
+        id: widget.menuItem?.id ?? 0,
         name: _nameController.text,
+        description: '',
         price: double.tryParse(_priceController.text) ?? 0.0,
-        category: _selectedCategory,
-        imageUrl: _imageUrlController.text,
+        image: _imageUrlController.text,
+        categoryId: int.parse(_selectedCategory),
+        createdAt: DateTime.now(),
       );
       // Close the dialog and pass the created/updated item back.
       Navigator.of(context).pop(newMenuItem);

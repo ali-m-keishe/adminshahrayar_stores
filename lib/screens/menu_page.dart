@@ -16,7 +16,7 @@ class MenuPage extends ConsumerWidget {
       context: context,
       builder: (context) => AddEditMenuItemDialog(
         menuItem: menuItem,
-        categories: menuState.categories,
+        categories: menuState.valueOrNull?.categories ?? [],
       ),
     );
 
@@ -130,16 +130,16 @@ class MenuPage extends ConsumerWidget {
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: menuState.categories.length,
+                      itemCount: menuState.valueOrNull?.categories.length ?? 0,
                       itemBuilder: (context, index) {
-                        final category = menuState.categories[index];
+                        final category = menuState.valueOrNull?.categories[index] ?? '';
 
                         final chip = ChoiceChip(
                           label: Text(category),
                           avatar: category != 'All'
                               ? const Icon(Icons.edit, size: 14)
                               : null,
-                          selected: menuState.selectedCategory == category,
+                          selected: menuState.valueOrNull?.selectedCategory == category,
                           onSelected: (isSelected) {
                             if (isSelected) {
                               ref
@@ -149,7 +149,7 @@ class MenuPage extends ConsumerWidget {
                           },
                           selectedColor: Theme.of(context).primaryColor,
                           labelStyle: TextStyle(
-                              color: menuState.selectedCategory == category
+                              color: menuState.valueOrNull?.selectedCategory == category
                                   ? Colors.white
                                   : null),
                         );
@@ -230,7 +230,7 @@ class MenuItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Image.network(
-            item.imageUrl,
+            item.image,
             height: 120,
             width: double.infinity,
             fit: BoxFit.cover,
@@ -251,7 +251,7 @@ class MenuItemCard extends StatelessWidget {
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 16),
                     overflow: TextOverflow.ellipsis),
-                Text(item.category,
+                Text('Category ${item.categoryId}',
                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),

@@ -5,7 +5,6 @@ import 'package:adminshahrayar/screens/dashboard_page.dart';
 import 'package:adminshahrayar/screens/delivery_page.dart';
 import 'package:adminshahrayar/screens/menu_page.dart';
 import 'package:adminshahrayar/screens/orders_page.dart';
-import 'package:adminshahrayar/screens/promotions_page.dart';
 import 'package:adminshahrayar/screens/settings.dart';
 import 'package:adminshahrayar/screens/staff_page.dart';
 import 'package:adminshahrayar/widget/sidebar.dart';
@@ -31,7 +30,7 @@ class MainScreen extends ConsumerWidget {
       const AnalyticsPage(), // Index 3
       const MenuPage(), // Index 4
       const CustomersPage(), // Index 5
-      const PromotionsPage(), // Index 6
+      // const PromotionsPage(), // Index 6
       const StaffPage(), // Index 7
       const SettingsPage(), // Index 8
       const AllOrdersPage(), // Index 9

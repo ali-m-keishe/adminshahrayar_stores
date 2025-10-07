@@ -1,4 +1,5 @@
 import 'package:adminshahrayar/models/order.dart';
+import 'package:adminshahrayar/repositories/order_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -16,53 +17,74 @@ class OrdersState {
   }
 }
 
-class OrdersNotifier extends StateNotifier<OrdersState> {
+class OrdersNotifier extends AsyncNotifier<OrdersState> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final OrderRepository _orderRepository = OrderRepository();
 
-  OrdersNotifier() : super(OrdersState()) {
-    _fetchOrders();
+  @override
+  Future<OrdersState> build() async {
+    final orders = await _orderRepository.getAllOrders();
+    return OrdersState(orders: orders);
   }
 
-  void _fetchOrders() {
-    state = state.copyWith(orders: mockOrders);
+  Future<void> refreshOrders() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async => await build());
   }
 
   void toggleView() {
-    state = state.copyWith(isKanbanView: !state.isKanbanView);
+    final current = state.valueOrNull ?? OrdersState();
+    final updated = current.copyWith(isKanbanView: !current.isKanbanView);
+    state = AsyncData(updated);
   }
 
   Future<void> addNewOrder() async {
     await _audioPlayer.play(AssetSource('sounds/notification.mp3'));
 
-    String newOrderId;
-    if (state.orders.isEmpty) {
-      newOrderId = '#85000';
+    int newOrderId;
+    final current = state.valueOrNull ?? OrdersState();
+    if (current.orders.isEmpty) {
+      newOrderId = 85000;
     } else {
-      newOrderId = '#${(int.parse(state.orders.first.id.substring(1)) + 1)}';
+      newOrderId = current.orders.first.id + 1;
     }
 
     final newOrder = Order(
       id: newOrderId,
-      customer: 'New Customer',
-      items: [
-        OrderItem(
-            itemName: 'Special Burger',
-            quantity: 1,
-            modifiers: ['Extra bacon']),
-        OrderItem(itemName: 'Onion Rings', quantity: 1),
-      ],
-      status: OrderStatus.Pending,
-      // vvv THIS IS THE FIX vvv
-      createdAt: DateTime.now(), // Use 'createdAt' instead of 'time'
-      // ^^^ THIS IS THE FIX ^^^
-      type: OrderType.Delivery,
+      cartId: 1,
+      status: 'Pending',
+      paymentToken: 'tok_${DateTime.now().millisecondsSinceEpoch}',
+      addressId: 1,
+      createdAt: DateTime.now(),
     );
 
-    state = state.copyWith(orders: [newOrder, ...state.orders]);
+    try {
+      await _orderRepository.addOrder(newOrder);
+      await refreshOrders(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> updateOrderStatus(int orderId, String status) async {
+    try {
+      await _orderRepository.updateOrderStatus(orderId, status);
+      await refreshOrders(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> assignDriverToOrder(int orderId, String driverId) async {
+    try {
+      await _orderRepository.assignDriverToOrder(orderId, driverId);
+      await refreshOrders(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
   }
 }
 
-final ordersProvider =
-    StateNotifierProvider<OrdersNotifier, OrdersState>((ref) {
+final ordersProvider = AsyncNotifierProvider<OrdersNotifier, OrdersState>(() {
   return OrdersNotifier();
 });

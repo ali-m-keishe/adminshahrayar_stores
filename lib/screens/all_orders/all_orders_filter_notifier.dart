@@ -25,7 +25,7 @@ final allOrdersFilterProvider =
 // If either one changes, it will re-run its logic and provide a new, filtered list to the UI.
 final filteredOrdersProvider = Provider<List<Order>>((ref) {
   final filter = ref.watch(allOrdersFilterProvider);
-  final orders = ref.watch(ordersProvider).orders;
+  final orders = ref.watch(ordersProvider).valueOrNull?.orders ?? [];
   final now = DateTime.now();
 
   switch (filter) {

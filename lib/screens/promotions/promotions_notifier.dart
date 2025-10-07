@@ -1,42 +1,63 @@
 import 'package:adminshahrayar/models/promotion.dart';
+import 'package:adminshahrayar/repositories/promotion_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart'; // We'll use a package to generate unique IDs
 
 class PromotionsNotifier extends StateNotifier<List<Promotion>> {
+  final PromotionRepository _promotionRepository = PromotionRepository();
+
   PromotionsNotifier() : super([]) {
     _fetchPromotions();
   }
 
-  void _fetchPromotions() {
-    state = mockPromotions;
+  Future<void> _fetchPromotions() async {
+    try {
+      final promotions = await _promotionRepository.getAllPromotions();
+      state = promotions;
+    } catch (e) {
+      // Fallback to mock data if repository fails
+      state = mockPromotions;
+    }
   }
 
-  void addPromotion(Promotion promo) {
-    state = [...state, promo];
+  Future<void> refreshPromotions() async {
+    await _fetchPromotions();
   }
 
-  void updatePromotion(Promotion updatedPromo) {
-    state = [
-      for (final promo in state)
-        if (promo.id == updatedPromo.id) updatedPromo else promo,
-    ];
+  Future<void> addPromotion(Promotion promo) async {
+    try {
+      await _promotionRepository.addPromotion(promo);
+      await _fetchPromotions(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
   }
 
-  void togglePromotionStatus(String id, bool isActive) {
-    state = [
-      for (final promo in state)
-        if (promo.id == id)
-          Promotion(
-            id: promo.id,
-            code: promo.code,
-            description: promo.description,
-            discountType: promo.discountType,
-            discountValue: promo.discountValue,
-            isActive: isActive,
-          )
-        else
-          promo,
-    ];
+  Future<void> updatePromotion(Promotion updatedPromo) async {
+    try {
+      await _promotionRepository.updatePromotion(updatedPromo);
+      await _fetchPromotions(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> togglePromotionStatus(String id) async {
+    try {
+      await _promotionRepository.togglePromotionStatus(id);
+      await _fetchPromotions(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> deletePromotion(String id) async {
+    try {
+      await _promotionRepository.deletePromotion(id);
+      await _fetchPromotions(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
   }
 }
 

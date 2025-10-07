@@ -13,14 +13,18 @@ class OrdersPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // We 'watch' the provider to get the current state.
     // The widget will automatically rebuild when this state changes.
-    final ordersState = ref.watch(ordersProvider);
-    final isKanbanView = ordersState.isKanbanView;
+    final ordersAsync = ref.watch(ordersProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return ordersAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Failed to load orders: $e')),
+      data: (ordersState) {
+        final isKanbanView = ordersState.isKanbanView;
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -67,6 +71,8 @@ class OrdersPage extends ConsumerWidget {
         ],
       ),
     );
+      },
+    );
   }
 }
 
@@ -91,7 +97,7 @@ class _TableView extends StatelessWidget {
         child: DataTable(
           columns: const [
             DataColumn(label: Text('Order ID')),
-            DataColumn(label: Text('Customer')),
+            DataColumn(label: Text('Cart')),
             DataColumn(label: Text('Total')),
             DataColumn(label: Text('Status')),
             DataColumn(label: Text('Actions')),
@@ -99,11 +105,11 @@ class _TableView extends StatelessWidget {
           rows: orders.map((order) {
             return DataRow(
               cells: [
-                DataCell(Text(order.id,
+                DataCell(Text(order.id.toString(),
                     style: TextStyle(color: Theme.of(context).primaryColor))),
-                DataCell(Text(order.customer)),
-                DataCell(Text('\$${order.total.toStringAsFixed(2)}')),
-                DataCell(OrderStatusBadge(status: order.status)),
+                DataCell(Text('Cart ${order.cartId}')),
+                const DataCell(Text('\$0.00')), // TODO: compute from cart_items
+                DataCell(OrderStatusBadge.fromString(order.status)),
                 DataCell(
                   Row(
                     children: [
@@ -132,11 +138,11 @@ class _KanbanView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pendingOrders =
-        orders.where((o) => o.status == OrderStatus.Pending).toList();
+        orders.where((o) => o.status == 'Pending').toList();
     final preparingOrders =
-        orders.where((o) => o.status == OrderStatus.Preparing).toList();
+        orders.where((o) => o.status == 'Preparing').toList();
     final completedOrders =
-        orders.where((o) => o.status == OrderStatus.Completed).toList();
+        orders.where((o) => o.status == 'Done').toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -267,7 +273,7 @@ class _KanbanCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(order.id,
+                Text(order.id.toString(),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 16)),
                 Container(
@@ -286,21 +292,12 @@ class _KanbanCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(order.customer, style: const TextStyle(fontSize: 14)),
+            Text('Cart ${order.cartId}', style: const TextStyle(fontSize: 14)),
             const Divider(height: 24),
-            // This now dynamically builds the item list for the card
-            ...order.items
-                .map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Text(
-                        '${item.quantity} x ${item.itemName}',
-                        style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodySmall?.color),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ))
-                .toList(),
+            // Placeholder until cart items are fetched by cartId
+            Text('Items for cart ${order.cartId}',
+                style: TextStyle(
+                    color: Theme.of(context).textTheme.bodySmall?.color)),
           ],
         ),
       ),

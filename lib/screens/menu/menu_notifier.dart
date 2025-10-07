@@ -1,4 +1,5 @@
 import 'package:adminshahrayar/models/menu_item.dart';
+import 'package:adminshahrayar/repositories/menu_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // The MenuState class, updated to allow categories to be changed.
@@ -33,94 +34,128 @@ class MenuState {
 }
 
 // The MenuNotifier, now with both addCategory and updateCategory methods.
-class MenuNotifier extends StateNotifier<MenuState> {
-  MenuNotifier() : super(MenuState()) {
-    _fetchMenuItems();
+class MenuNotifier extends AsyncNotifier<MenuState> {
+  final MenuRepository _menuRepository = MenuRepository();
+
+  @override
+  Future<MenuState> build() async {
+    try {
+      final menuItems = await _menuRepository.getAllMenuItems();
+      final categories = await _menuRepository.getCategories();
+      return MenuState(
+        menuItems: menuItems,
+        categories: ['All', ...categories.map((c) => c.name)],
+      );
+    } catch (e) {
+      return MenuState(menuItems: mockMenuItems);
+    }
   }
 
-  void _fetchMenuItems() {
-    state = state.copyWith(menuItems: mockMenuItems);
+  Future<void> refreshMenuItems() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async => await build());
   }
 
   void selectCategory(String category) {
-    state = state.copyWith(selectedCategory: category);
+    final current = state.valueOrNull ?? MenuState();
+    state = AsyncData(current.copyWith(selectedCategory: category));
   }
 
   void addCategory(String newCategory) {
+    final current = state.valueOrNull ?? MenuState();
     final trimmedCategory = newCategory.trim();
     if (trimmedCategory.isEmpty ||
-        state.categories
+        current.categories
             .any((c) => c.toLowerCase() == trimmedCategory.toLowerCase())) {
       return;
     }
-    final updatedCategories = [...state.categories, trimmedCategory];
-    state = state.copyWith(categories: updatedCategories);
+    final updatedCategories = [...current.categories, trimmedCategory];
+    state = AsyncData(current.copyWith(categories: updatedCategories));
   }
 
   void updateCategory(String oldName, String newName) {
+    final current = state.valueOrNull ?? MenuState();
     final trimmedNewName = newName.trim();
     if (trimmedNewName.isEmpty ||
-        state.categories
+        current.categories
             .any((c) => c.toLowerCase() == trimmedNewName.toLowerCase())) {
       return;
     }
 
     final updatedCategories =
-        state.categories.map((c) => c == oldName ? trimmedNewName : c).toList();
-    final updatedMenuItems = state.menuItems.map((item) {
-      if (item.category == oldName) {
+        current.categories.map((c) => c == oldName ? trimmedNewName : c).toList();
+    final updatedMenuItems = current.menuItems.map((item) {
+      if (item.categoryId.toString() == oldName) {
         return MenuItem(
+          id: item.id,
           name: item.name,
+          description: item.description,
           price: item.price,
-          category: trimmedNewName,
-          imageUrl: item.imageUrl,
+          image: item.image,
+          categoryId: item.categoryId,
+          createdAt: item.createdAt,
         );
       }
       return item;
     }).toList();
 
-    final newSelectedCategory = state.selectedCategory == oldName
+    final newSelectedCategory = current.selectedCategory == oldName
         ? trimmedNewName
-        : state.selectedCategory;
+        : current.selectedCategory;
 
-    state = state.copyWith(
+    state = AsyncData(current.copyWith(
       categories: updatedCategories,
       menuItems: updatedMenuItems,
       selectedCategory: newSelectedCategory,
-    );
+    ));
   }
 
-  void addMenuItem(MenuItem newItem) {
-    state = state.copyWith(menuItems: [...state.menuItems, newItem]);
+  Future<void> addMenuItem(MenuItem newItem) async {
+    try {
+      await _menuRepository.addMenuItem(newItem);
+      await refreshMenuItems(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
   }
 
-  void updateMenuItem(MenuItem updatedItem) {
-    state = state.copyWith(
-      menuItems: state.menuItems.map((item) {
-        return item.name == updatedItem.name ? updatedItem : item;
-      }).toList(),
-    );
+  Future<void> updateMenuItem(MenuItem updatedItem) async {
+    try {
+      await _menuRepository.updateMenuItem(updatedItem);
+      await refreshMenuItems(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
   }
 
-  void deleteMenuItem(String itemName) {
-    state = state.copyWith(
-      menuItems:
-          state.menuItems.where((item) => item.name != itemName).toList(),
-    );
+  Future<void> deleteMenuItem(String itemName) async {
+    try {
+      await _menuRepository.deleteMenuItem(itemName);
+      await refreshMenuItems(); // Refresh the data
+    } catch (e) {
+      // Handle error
+    }
   }
 }
 
 // Providers remain the same.
-final menuProvider = StateNotifierProvider<MenuNotifier, MenuState>((ref) {
+final menuProvider = AsyncNotifierProvider<MenuNotifier, MenuState>(() {
   return MenuNotifier();
 });
 
 final filteredMenuItemsProvider = Provider<List<MenuItem>>((ref) {
   final menuState = ref.watch(menuProvider);
-  if (menuState.selectedCategory == 'All') {
-    return menuState.menuItems;
-  }
-  return menuState.menuItems
-      .where((item) => item.category == menuState.selectedCategory)
-      .toList();
+  return menuState.when(
+    loading: () => const <MenuItem>[],
+    error: (_, __) => const <MenuItem>[],
+    data: (data) {
+      if (data.selectedCategory == 'All') {
+        return data.menuItems;
+      }
+      return data.menuItems
+          .where((item) =>
+              item.categoryId.toString() == data.selectedCategory)
+          .toList();
+    },
+  );
 });

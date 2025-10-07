@@ -10,7 +10,10 @@ class CustomersPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(customersProvider);
 
-    return SingleChildScrollView(
+    return state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Failed to load customers: $e')),
+      data: (data) => SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,9 +44,9 @@ class CustomersPage extends ConsumerWidget {
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: state.recentReviews.length,
-                          itemBuilder: (context, index) =>
-                              _ReviewCard(review: state.recentReviews[index]),
+                          itemCount: data.recentReviews.length,
+                          itemBuilder: (context, index) => _ReviewCard(
+                              review: data.recentReviews[index]),
                           separatorBuilder: (context, index) =>
                               const Divider(height: 32),
                         ),
@@ -68,9 +71,9 @@ class CustomersPage extends ConsumerWidget {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: state.topCustomers.length,
-                          itemBuilder: (context, index) => _CustomerTile(
-                              customer: state.topCustomers[index]),
+                          itemCount: data.topCustomers.length,
+                          itemBuilder: (context, index) =>
+                              _CustomerTile(customer: data.topCustomers[index]),
                         ),
                       ],
                     ),
@@ -81,6 +84,7 @@ class CustomersPage extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

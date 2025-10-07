@@ -38,7 +38,7 @@ class OrderSearchDelegate extends SearchDelegate<Order?> {
   }
 
   @override
-  Widget buildSuggestions(BuildContext context) {
+  Widget buildSuggestions(BuildContext context) { 
     // Builds the suggestions as the user types
     return _buildFilteredList();
   }
@@ -48,8 +48,8 @@ class OrderSearchDelegate extends SearchDelegate<Order?> {
 
     // The actual filtering logic
     final filteredOrders = allOrders.where((order) {
-      final idMatches = order.id.toLowerCase().contains(queryLower);
-      final customerMatches = order.customer.toLowerCase().contains(queryLower);
+      final idMatches = order.id.toString().toLowerCase().contains(queryLower);
+      final customerMatches = order.cartId.toString().toLowerCase().contains(queryLower);
       return idMatches || customerMatches;
     }).toList();
 
@@ -62,11 +62,12 @@ class OrderSearchDelegate extends SearchDelegate<Order?> {
       itemBuilder: (context, index) {
         final order = filteredOrders[index];
         return ListTile(
-          leading: CircleAvatar(child: Text(order.id.substring(1, 3))),
+          leading: CircleAvatar(child: Text(order.id.toString().substring(1, 3))),
           title: Text('Order ${order.id}'),
-          subtitle: Text(order.customer),
-          trailing: Text('\$${order.total.toStringAsFixed(2)}'),
+          subtitle: Text('Cart ${order.cartId}'),
+          trailing: const Text('\$0.00'), // TODO: compute from cart_items by cartId
           onTap: () {
+            // When a result is tapped, close the search and return the order
             // When a result is tapped, close the search and return the order
             close(context, order);
           },

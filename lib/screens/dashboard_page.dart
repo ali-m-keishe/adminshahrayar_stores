@@ -6,6 +6,7 @@ import 'package:adminshahrayar/widget/order_status_badge.dart';
 import 'package:adminshahrayar/widget/stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:timeago/timeago.dart' as timeago; // 1. ADD THIS IMPORT
 
 void _showOrderDetails(BuildContext context, Order order) {
@@ -17,11 +18,19 @@ void _showOrderDetails(BuildContext context, Order order) {
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
+  String _formatOrderDate(String dateString) {
+    try {
+      DateTime dateTime = DateTime.parse(dateString);
+      return DateFormat('MMM dd, yyyy - hh:mm a').format(dateTime);
+    } catch (e) {
+      return dateString; // في حالة فشل التحويل، ارجع النص الأصلي
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allOrders = ref.watch(ordersProvider).orders;
-    final recentOrders = allOrders.take(5).toList();
+    final allOrders = ref.watch(ordersProvider).valueOrNull?.orders ?? [];
+    final recentOrders = allOrders.toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -84,29 +93,25 @@ class DashboardPage extends ConsumerWidget {
               width: double.infinity,
               child: DataTable(
                 columns: const [
-                  DataColumn(label: Text('Order ID')),
-                  DataColumn(label: Text('Customer')),
-                  DataColumn(label: Text('Total')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Type')),
-                  DataColumn(label: Text('Time')),
+                  DataColumn(label: Text('id')),
+                  DataColumn(label: Text('created_at')),
+                  DataColumn(label: Text('cart_id')),
+                  DataColumn(label: Text('status')),
+                  DataColumn(label: Text('payment_token')),
+                  DataColumn(label: Text('address_id')),
                 ],
                 rows: recentOrders.map((order) {
                   return DataRow(
                     cells: [
-                      DataCell(
-                        Text(order.id,
-                            style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.bold)),
-                        onTap: () => _showOrderDetails(context, order),
-                      ),
-                      DataCell(Text(order.customer)),
-                      DataCell(Text('\$${order.total.toStringAsFixed(2)}')),
-                      DataCell(OrderStatusBadge(status: order.status)),
-                      DataCell(Text(order.type.name)),
-                      // 2. THIS IS THE FIX
-                      DataCell(Text(timeago.format(order.createdAt))),
+                      DataCell(Text(order.id.toString(),
+                          style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold))),
+                      DataCell(Text(_formatOrderDate(order.createdAt.toString()))),
+                      DataCell(Text(order.cartId.toString())),
+                      DataCell(OrderStatusBadge.fromString(order.status)),
+                      DataCell(Text(order.paymentToken)),
+                      DataCell(Text(order.addressId.toString())),
                     ],
                   );
                 }).toList(),

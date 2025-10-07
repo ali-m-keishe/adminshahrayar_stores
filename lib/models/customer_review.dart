@@ -13,6 +13,25 @@ class Customer {
 
   // Helper getter to create an avatar letter from the name
   String get avatarLetter => name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+  // JSON serialization methods
+  factory Customer.fromJson(Map<String, dynamic> json) {
+    return Customer(
+      id: json['id'].toString(),
+      name: json['name'] ?? '',
+      totalSpent: (json['total_spent'] ?? 0).toDouble(),
+      orderCount: json['order_count'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'total_spent': totalSpent,
+      'order_count': orderCount,
+    };
+  }
 }
 
 class Review {
@@ -27,6 +46,25 @@ class Review {
     required this.comment,
     required this.date,
   });
+
+  // JSON serialization methods
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      customerName: json['customer_name'] ?? '',
+      rating: json['rating'] ?? 0,
+      comment: json['comment'] ?? '',
+      date: json['date'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'customer_name': customerName,
+      'rating': rating,
+      'comment': comment,
+      'date': date,
+    };
+  }
 }
 
 // Mock Data for the UI

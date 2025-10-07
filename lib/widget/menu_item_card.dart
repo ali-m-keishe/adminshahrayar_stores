@@ -13,7 +13,7 @@ class MenuItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Image.network(
-            item.imageUrl,
+            item.image,
             height: 150,
             width: double.infinity,
             fit: BoxFit.cover,
@@ -31,7 +31,7 @@ class MenuItemCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    item.category,
+                    'Category ${item.categoryId}',
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey),

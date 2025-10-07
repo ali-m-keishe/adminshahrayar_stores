@@ -18,6 +18,7 @@ dependencies:
   audioplayers: ^6.0.0 
   uuid: ^4.4.0
   timeago: ^3.6.1
+  supabase_flutter: ^2.5.6
 
 dev_dependencies:
   flutter_test:
