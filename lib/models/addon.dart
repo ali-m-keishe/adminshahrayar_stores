@@ -11,13 +11,12 @@ class Addon {
     required this.createdAt,
   });
 
-  // JSON serialization methods
   factory Addon.fromJson(Map<String, dynamic> json) {
     return Addon(
-      id: json['id'] ?? 0,
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
 

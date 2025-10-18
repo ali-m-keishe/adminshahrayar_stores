@@ -55,3 +55,14 @@ final filteredOrdersProvider = Provider<List<Order>>((ref) {
       return orders;
   }
 });
+
+// 5. Create a provider for filtering orders by status (pending and on the way)
+final pendingAndOnTheWayOrdersProvider = Provider<List<Order>>((ref) {
+  final orders = ref.watch(ordersProvider).valueOrNull?.orders ?? [];
+  
+  return orders
+      .where((order) => 
+          order.status.toLowerCase() == 'pending' || 
+          order.status.toLowerCase() == 'on the way')
+      .toList();
+});

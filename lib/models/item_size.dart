@@ -13,14 +13,13 @@ class ItemSize {
     required this.createdAt,
   });
 
-  // JSON serialization methods
   factory ItemSize.fromJson(Map<String, dynamic> json) {
     return ItemSize(
-      id: json['id'] ?? 0,
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       sizeName: json['size_name'] ?? '',
       additionalPrice: (json['additional_price'] ?? 0).toDouble(),
-      itemId: json['item_id'] ?? 0,
-      createdAt: DateTime.parse(json['created_at']),
+      itemId: json['item_id'] is int ? json['item_id'] : int.tryParse(json['item_id'].toString()) ?? 0,
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
 

@@ -2,12 +2,14 @@ class Cart {
   final int cartId;
   final String status;
   final String userId;
+  final double totalPrice;
   final DateTime createdAt;
 
   Cart({
     required this.cartId,
     required this.status,
     required this.userId,
+    required this.totalPrice,
     required this.createdAt,
   });
 
@@ -17,6 +19,7 @@ class Cart {
       cartId: json['cart_id'] ?? 0,
       status: json['status'] ?? '',
       userId: json['user_id'] ?? '',
+      totalPrice: (json['total_price'] ?? 0).toDouble(),
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -26,6 +29,7 @@ class Cart {
       'cart_id': cartId,
       'status': status,
       'user_id': userId,
+      'total_price': totalPrice,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -38,7 +42,9 @@ class CartItem {
   final String note;
   final int itemId;
   final int? sizeId;
-  final Map<String, dynamic> cartItemAddons;
+  final List<dynamic> cartItemAddons;
+  final double price;
+  final bool hasOffer;
   final DateTime createdAt;
 
   CartItem({
@@ -49,6 +55,8 @@ class CartItem {
     required this.itemId,
     this.sizeId,
     required this.cartItemAddons,
+    required this.price,
+    required this.hasOffer,
     required this.createdAt,
   });
 
@@ -61,7 +69,9 @@ class CartItem {
       note: json['note'] ?? '',
       itemId: json['item_id'] ?? 0,
       sizeId: json['size_id'],
-      cartItemAddons: json['cart_item_addons'] ?? {},
+      cartItemAddons: json['cart_item_addons'] ?? [],
+      price: (json['price'] ?? 0).toDouble(),
+      hasOffer: json['has_offer'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -75,6 +85,8 @@ class CartItem {
       'item_id': itemId,
       'size_id': sizeId,
       'cart_item_addons': cartItemAddons,
+      'price': price,
+      'has_offer': hasOffer,
       'created_at': createdAt.toIso8601String(),
     };
   }

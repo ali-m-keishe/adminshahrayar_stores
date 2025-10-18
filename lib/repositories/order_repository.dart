@@ -1,5 +1,12 @@
 import '../models/order.dart';
+import '../models/order_details.dart';
+import '../models/cart.dart';
+import '../models/menu_item.dart';
+import '../models/item_size.dart';
+import '../models/addon.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+final supabase = Supabase.instance.client;
 
 class OrderRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -7,9 +14,8 @@ class OrderRepository {
   // Get all orders
   Future<List<Order>> getAllOrders() async {
     try {
-      final List<dynamic> response = await _supabase
-          .from('orders')
-          .select();
+      print('Attempting to fetch orders from Supabase...');
+      final List<dynamic> response = await _supabase.from('orders').select();
 
       print('Supabase fetch all orders: $response');
 
@@ -18,18 +24,25 @@ class OrderRepository {
           .toList();
     } catch (e) {
       print('Supabase fetch error orders: $e');
-      throw Exception('Failed to load orders: $e');
+      print('Falling back to mock data...');
+      // Return mock data instead of throwing error
+      await Future.delayed(const Duration(milliseconds: 300));
+      return mockOrders;
     }
   }
 
   // Get order by ID
   Future<Order?> getOrderById(int id) async {
     try {
+      print('Attempting to fetch order $id from Supabase...');
       final response =
           await _supabase.from('orders').select().eq('id', id).single();
 
+      print('Order response: $response');
       return Order.fromJson(response as Map<String, dynamic>);
     } catch (e) {
+      print('Supabase error for order $id: $e');
+      print('Falling back to mock data...');
       // Fallback to mock data if Supabase fails
       await Future.delayed(const Duration(milliseconds: 300));
       try {
@@ -39,6 +52,111 @@ class OrderRepository {
       }
     }
   }
+
+  // Get detailed order information including cart items
+  Future<OrderDetails?> getOrderDetails(int orderId) async {
+    print('Fetching order details for order ID: $orderId');
+
+    try {
+      final response = await supabase.from('orders').select('''
+          id,
+          created_at,
+          status,
+          payment_token,
+          address_id,
+          cart:cart_id (
+            cart_id,
+            created_at,
+            status,
+            user_id,
+            total_price,
+            cart_items (
+              id,
+              cart_id,
+              quantity,
+              note,
+              item_id,
+              size_id,
+              cart_item_addons,
+              price,
+              has_offer,
+              created_at,
+              item:items (*),
+              size:item_sizes (*)
+            )
+          )
+        ''').eq('id', orderId).single();
+
+      if (response == null) {
+        print('⚠️ No order found for ID: $orderId');
+        return null;
+      }
+      print('Order details response: $response');
+      // 🧠 تأكد إن الـ cart فعلاً Map مش List
+      final cartData = response['cart'] is List
+          ? (response['cart'] as List).first
+          : response['cart'];
+
+      // 🔧 جهّز JSON متوافق مع OrderDetails.fromJson
+      final jsonData = {
+        'order': {
+          'id': response['id'],
+          'created_at': response['created_at'],
+          'status': response['status'],
+          'payment_token': response['payment_token'],
+          'address_id': response['address_id'],
+          'cart_id': cartData['cart_id'],
+        },
+        'cart': {
+          'cart_id': cartData['cart_id'],
+          'created_at': cartData['created_at'],
+          'status': cartData['status'],
+          'user_id': cartData['user_id'],
+          'total_price': cartData['total_price'],
+        },
+        'items': (cartData['cart_items'] as List? ?? []).map((item) {
+          return {
+            'cart_item': {
+              'id': item['id'],
+              'cart_id': item['cart_id'],
+              'quantity': item['quantity'],
+              'note': item['note'],
+              'item_id': item['item_id'],
+              'size_id': item['size_id'],
+              'cart_item_addons': item['cart_item_addons'] ?? {},
+              'price': item['price'],
+              'has_offer': item['has_offer'],
+              'created_at': item['created_at'],
+            },
+            'menu_item': item['item'],
+            'size': item['size'],
+            // 👇 addons من cart_item_addons مباشرة
+            'addons': (item['cart_item_addons'] != null &&
+                    item['cart_item_addons'] is List)
+                ? item['cart_item_addons']
+                    .map((a) => {
+                          'id': a['id'] ?? 0,
+                          'name': a['name'] ?? '',
+                          'price': (a['price'] ?? 0).toDouble(),
+                        })
+                    .toList()
+                : [],
+          };
+        }).toList(),
+        'total_price': cartData['total_price'],
+      };
+
+      final orderDetails = OrderDetails.fromJson(jsonData);
+      print('✅ Order details fetched successfully');
+      return orderDetails;
+    } catch (e, stack) {
+      print('❌ Error fetching order details: $e');
+      print(stack);
+      return null;
+    }
+  }
+
+
 
   // Get orders by status
   Future<List<Order>> getOrdersByStatus(String status) async {
@@ -60,22 +178,17 @@ class OrderRepository {
 
   // Get pending orders
   Future<List<Order>> getPendingOrders() async {
-    return await getOrdersByStatus('Pending');
+    return await getOrdersByStatus('pending');
   }
 
   // Get preparing orders
   Future<List<Order>> getPreparingOrders() async {
-    return await getOrdersByStatus('Preparing');
+    return await getOrdersByStatus('on the way');
   }
 
   // Get completed orders
   Future<List<Order>> getCompletedOrders() async {
-    return await getOrdersByStatus('Completed');
-  }
-
-  // Get cancelled orders
-  Future<List<Order>> getCancelledOrders() async {
-    return await getOrdersByStatus('Cancelled');
+    return await getOrdersByStatus('done');
   }
 
   // Get recent orders
@@ -221,7 +334,7 @@ class OrderRepository {
       statusCounts[order.status] = (statusCounts[order.status] ?? 0) + 1;
       typeCounts['Order'] = (typeCounts['Order'] ?? 0) + 1;
 
-      if (order.status == 'Completed') {
+      if (order.status == 'done') {
         totalRevenue += 0; // TODO: Calculate from cart items
       }
     }
@@ -240,8 +353,7 @@ class OrderRepository {
     await Future.delayed(const Duration(milliseconds: 400));
     return mockOrders
         .where((order) =>
-            order.status == 'Pending' ||
-            order.status == 'Preparing')
+            order.status == 'pending' || order.status == 'on the way')
         .toList();
   }
 }

@@ -5,6 +5,7 @@ import 'package:adminshahrayar/screens/dashboard_page.dart';
 import 'package:adminshahrayar/screens/delivery_page.dart';
 import 'package:adminshahrayar/screens/menu_page.dart';
 import 'package:adminshahrayar/screens/orders_page.dart';
+import 'package:adminshahrayar/screens/pending_orders_page.dart';
 import 'package:adminshahrayar/screens/settings.dart';
 import 'package:adminshahrayar/screens/staff_page.dart';
 import 'package:adminshahrayar/widget/sidebar.dart';
@@ -34,7 +35,8 @@ class MainScreen extends ConsumerWidget {
       const StaffPage(), // Index 7
       const SettingsPage(), // Index 8
       const AllOrdersPage(), // Index 9
-    ];
+      const PendingOrdersPage(), // Index 10
+    ].map((page) => page ?? Container()).toList();;
 
     final isDesktop = MediaQuery.of(context).size.width >= 768;
 

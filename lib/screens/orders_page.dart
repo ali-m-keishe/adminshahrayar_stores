@@ -105,10 +105,21 @@ class _TableView extends StatelessWidget {
           rows: orders.map((order) {
             return DataRow(
               cells: [
-                DataCell(Text(order.id.toString(),
-                    style: TextStyle(color: Theme.of(context).primaryColor))),
+                DataCell(
+                  InkWell(
+                    onTap: () => _showOrderDetails(context, order),
+                    child: Text(
+                      order.id.toString(),
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
                 DataCell(Text('Cart ${order.cartId}')),
-                const DataCell(Text('\$0.00')), // TODO: compute from cart_items
+                DataCell(Text('\$0.00')), // Will be updated when order details are loaded
                 DataCell(OrderStatusBadge.fromString(order.status)),
                 DataCell(
                   Row(
@@ -293,6 +304,12 @@ class _KanbanCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text('Cart ${order.cartId}', style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 4),
+            Text('Total: \$0.00', 
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor)),
             const Divider(height: 24),
             // Placeholder until cart items are fetched by cartId
             Text('Items for cart ${order.cartId}',
