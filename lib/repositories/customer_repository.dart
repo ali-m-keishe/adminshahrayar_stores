@@ -7,16 +7,20 @@ class CustomerRepository {
   // Get all customers
   Future<List<Customer>> getAllCustomers() async {
     try {
-      final response = await _supabase
-          .from('customers')
-          .select()
-          .order('total_spent', ascending: false);
+      final response = await _supabase.rpc('get_all_users_basic');
 
-      return (response as List)
-          .map((item) => Customer.fromJson(item as Map<String, dynamic>))
-          .toList();
+      return (response as List).map((item) {
+        final map = item as Map<String, dynamic>;
+        return Customer(
+          id: map['id'].toString(),
+          name: map['user_name'] ?? '',
+          totalSpent: 0.0, // ما بدنا نملأ غير الاسم والـ phone
+          orderCount: 0, // تترك صفر
+          phone: map['phone'] ?? '',
+        );
+      }).toList();
     } catch (e) {
-      // Fallback to mock data if Supabase fails
+      print('Error fetching customers from Supabase: $e');
       await Future.delayed(const Duration(milliseconds: 500));
       return mockTopCustomers;
     }
@@ -25,11 +29,8 @@ class CustomerRepository {
   // Get customer by ID
   Future<Customer?> getCustomerById(String id) async {
     try {
-      final response = await _supabase
-          .from('customers')
-          .select()
-          .eq('id', id)
-          .single();
+      final response =
+          await _supabase.from('customers').select().eq('id', id).single();
 
       return Customer.fromJson(response as Map<String, dynamic>);
     } catch (e) {
@@ -101,89 +102,5 @@ class CustomerRepository {
   Future<void> deleteCustomer(String id) async {
     await Future.delayed(const Duration(milliseconds: 500));
     // In a real app, this would make an API call to delete the customer
-  }
-}
-
-class ReviewRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
-
-  // Get all reviews
-  Future<List<Review>> getAllReviews() async {
-    try {
-      final response = await _supabase
-          .from('reviews')
-          .select()
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((item) => Review.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      // Fallback to mock data if Supabase fails
-      await Future.delayed(const Duration(milliseconds: 500));
-      return mockRecentReviews;
-    }
-  }
-
-  // Get recent reviews
-  Future<List<Review>> getRecentReviews({int limit = 10}) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    return mockRecentReviews.take(limit).toList();
-  }
-
-  // Get reviews by rating
-  Future<List<Review>> getReviewsByRating(int rating) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockRecentReviews
-        .where((review) => review.rating == rating)
-        .toList();
-  }
-
-  // Get reviews with minimum rating
-  Future<List<Review>> getReviewsWithMinimumRating(int minRating) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockRecentReviews
-        .where((review) => review.rating >= minRating)
-        .toList();
-  }
-
-  // Add new review
-  Future<Review> addReview(Review review) async {
-    try {
-      final response = await _supabase
-          .from('reviews')
-          .insert(review.toJson())
-          .select()
-          .single();
-
-      return Review.fromJson(response as Map<String, dynamic>);
-    } catch (e) {
-      // Fallback behavior if Supabase fails
-      await Future.delayed(const Duration(milliseconds: 800));
-      throw Exception('Failed to add review: $e');
-    }
-  }
-
-  // Get average rating
-  Future<double> getAverageRating() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (mockRecentReviews.isEmpty) return 0.0;
-    
-    final totalRating = mockRecentReviews
-        .map((review) => review.rating)
-        .reduce((a, b) => a + b);
-    return totalRating / mockRecentReviews.length;
-  }
-
-  // Get rating distribution
-  Future<Map<int, int>> getRatingDistribution() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    final distribution = <int, int>{};
-    
-    for (final review in mockRecentReviews) {
-      distribution[review.rating] = (distribution[review.rating] ?? 0) + 1;
-    }
-    
-    return distribution;
   }
 }

@@ -2,65 +2,45 @@ import 'package:adminshahrayar/models/customer_review.dart';
 import 'package:adminshahrayar/repositories/customer_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// The state class is unchanged
 class CustomersState {
-  final List<Review> recentReviews;
-  final List<Customer> topCustomers;
-
-  CustomersState({
-    this.recentReviews = const [],
-    this.topCustomers = const [],
-  });
-
-  CustomersState copyWith({
-    List<Review>? recentReviews,
-    List<Customer>? topCustomers,
-  }) {
-    return CustomersState(
-      recentReviews: recentReviews ?? this.recentReviews,
-      topCustomers: topCustomers ?? this.topCustomers,
-    );
+  final AsyncValue<List<Customer>> allCustomers;
+  CustomersState({this.allCustomers = const AsyncValue.loading()});
+  CustomersState copyWith({AsyncValue<List<Customer>>? allCustomers}) {
+    return CustomersState(allCustomers: allCustomers ?? this.allCustomers);
   }
 }
 
-class CustomersNotifier extends AsyncNotifier<CustomersState> {
-  final CustomerRepository _customerRepository = CustomerRepository();
-  final ReviewRepository _reviewRepository = ReviewRepository();
-
+class CustomersNotifier extends AsyncNotifier<List<Customer>> {
   @override
-  Future<CustomersState> build() async {
-    try {
-      final topCustomers = await _customerRepository.getTopCustomers();
-      final recentReviews = await _reviewRepository.getRecentReviews();
-      return CustomersState(recentReviews: recentReviews, topCustomers: topCustomers);
-    } catch (_) {
-      return CustomersState(recentReviews: mockRecentReviews, topCustomers: mockTopCustomers);
-    }
+  Future<List<Customer>> build() async {
+    //declare and initialize the repository as a local variable inside the build method.
+    final customerRepository = ref.watch(customerRepositoryProvider);
+
+    return customerRepository.getAllCustomers();
   }
 
-  Future<void> refreshData() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async => await build());
-  }
-
-  Future<void> addCustomer(Customer customer) async {
-    try {
-      await _customerRepository.addCustomer(customer);
-      await refreshData(); // Refresh the data
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  Future<void> addReview(Review review) async {
-    try {
-      await _reviewRepository.addReview(review);
-      await refreshData(); // Refresh the data
-    } catch (e) {
-      // Handle error
-    }
-  }
+  // // Future methods for adding/deleting would now look like this:
+  // Future<void> addCustomer(Customer customer) async {
+  //   // Get the repository
+  //   final customerRepository = ref.read(customerRepositoryProvider);
+  //   // Set the UI to a loading state while we perform the action
+  //   state = const AsyncLoading();
+  //   // Use AsyncValue.guard to handle potential errors
+  //   state = await AsyncValue.guard(() async {
+  //     await customerRepository.addCustomer(customer);
+  //     // Re-fetch the list to show the new customer
+  //     return customerRepository.getAllCustomers();
+  //   });
+  // }
 }
 
-final customersProvider = AsyncNotifierProvider<CustomersNotifier, CustomersState>(() {
+// The providers are unchanged
+final customersProvider =
+    AsyncNotifierProvider<CustomersNotifier, List<Customer>>(() {
   return CustomersNotifier();
+});
+
+final customerRepositoryProvider = Provider<CustomerRepository>((ref) {
+  return CustomerRepository();
 });
