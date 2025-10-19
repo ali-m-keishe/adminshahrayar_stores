@@ -1,6 +1,5 @@
-import 'package:adminshahrayar/screens/main_screen.dart';
+import 'package:adminshahrayar/main_screen.dart';
 import 'package:adminshahrayar/theme.dart';
-import 'package:adminshahrayar/config/supabase_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Import the Riverpod package
 import 'package:supabase_flutter/supabase_flutter.dart';

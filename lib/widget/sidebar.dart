@@ -49,22 +49,16 @@ class Sidebar extends StatelessWidget {
                   onTap: () => onItemTapped(0),
                 ),
                 _SidebarLink(
-                  text: 'Kitchen / Orders',
-                  icon: Icons.kitchen,
+                  text: 'Delivery',
+                  icon: Icons.local_shipping,
                   isSelected: selectedIndex == 1,
                   onTap: () => onItemTapped(1),
                 ),
                 _SidebarLink(
-                  text: 'Delivery',
-                  icon: Icons.local_shipping,
-                  isSelected: selectedIndex == 2,
-                  onTap: () => onItemTapped(2),
-                ),
-                _SidebarLink(
                   text: 'Analytics',
                   icon: Icons.analytics,
-                  isSelected: selectedIndex == 3,
-                  onTap: () => onItemTapped(3),
+                  isSelected: selectedIndex == 2,
+                  onTap: () => onItemTapped(2),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
@@ -84,32 +78,32 @@ class Sidebar extends StatelessWidget {
                 _SidebarLink(
                   text: 'Menu & Inventory',
                   icon: Icons.menu_book,
-                  isSelected: selectedIndex == 4,
-                  onTap: () => onItemTapped(4),
+                  isSelected: selectedIndex == 3,
+                  onTap: () => onItemTapped(3),
                 ),
                 _SidebarLink(
                   text: 'Customers & Reviews',
                   icon: Icons.people,
-                  isSelected: selectedIndex == 5,
-                  onTap: () => onItemTapped(5),
+                  isSelected: selectedIndex == 4,
+                  onTap: () => onItemTapped(4),
                 ),
                 _SidebarLink(
                   text: 'Promotions',
                   icon: Icons.local_offer,
-                  isSelected: selectedIndex == 6,
-                  onTap: () => onItemTapped(6),
+                  isSelected: selectedIndex == 5,
+                  onTap: () => onItemTapped(5),
                 ),
                 _SidebarLink(
                   text: 'Staff',
                   icon: Icons.badge,
-                  isSelected: selectedIndex == 7,
-                  onTap: () => onItemTapped(7),
+                  isSelected: selectedIndex == 6,
+                  onTap: () => onItemTapped(6),
                 ),
                 _SidebarLink(
                   text: 'Settings',
                   icon: Icons.settings,
-                  isSelected: selectedIndex == 8,
-                  onTap: () => onItemTapped(8),
+                  isSelected: selectedIndex == 7,
+                  onTap: () => onItemTapped(7),
                 ),
               ],
             ),
@@ -178,9 +172,8 @@ class _SidebarLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: isSelected
-          ? theme.primaryColor.withOpacity(0.2)
-          : Colors.transparent,
+      color:
+          isSelected ? theme.primaryColor.withOpacity(0.2) : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
