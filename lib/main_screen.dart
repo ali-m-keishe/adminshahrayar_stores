@@ -1,7 +1,6 @@
 import 'package:adminshahrayar/ui/analytics/views/analytics_page.dart';
 import 'package:adminshahrayar/ui/customer/views/customers_page.dart';
 import 'package:adminshahrayar/ui/dashboard/views/dashboard_page.dart';
-import 'package:adminshahrayar/ui/dashboard/views/pending_orders_page.dart';
 import 'package:adminshahrayar/ui/delivery_driver/views/delivery_page.dart';
 import 'package:adminshahrayar/ui/menu/views/menu_page.dart';
 import 'package:adminshahrayar/ui/orders/views/all_orders_page.dart';
@@ -34,7 +33,7 @@ class MainScreen extends ConsumerWidget {
       const StaffPage(), // Index 6
       const SettingsPage(), // Index 7
       const AllOrdersPage(), // Index 8
-      const PendingOrdersPage(), // Index 9
+      // const PendingOrdersPage(), // Index 9
     ].map((page) => page ?? Container()).toList();
     ;
 

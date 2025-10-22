@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/customer_review.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -104,3 +106,7 @@ class CustomerRepository {
     // In a real app, this would make an API call to delete the customer
   }
 }
+
+final customerRepositoryProvider = Provider<CustomerRepository>((ref) {
+  return CustomerRepository();
+});

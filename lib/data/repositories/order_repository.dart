@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/order.dart';
 import '../models/order_details.dart';
 import '../models/cart.dart';
@@ -30,6 +32,15 @@ class OrderRepository {
       return mockOrders;
     }
   }
+
+  Stream<List<Order>> subscribeToActiveOrders() {
+  return supabase
+      .from('orders')
+      .stream(primaryKey: ['id'])
+      .inFilter('status', ['pending', 'on the way']) // 🔹 فلترة هنا
+      .order('created_at', ascending: false)
+      .map((rows) => rows.map((row) => Order.fromJson(row)).toList());
+}
 
   // Get order by ID
   Future<Order?> getOrderById(int id) async {
@@ -354,4 +365,41 @@ class OrderRepository {
             order.status == 'pending' || order.status == 'on the way')
         .toList();
   }
+
+  Future<List<Order>> getPendingAndOnTheWayOrders() async {
+    final supabase = Supabase.instance.client;
+
+    final response = await supabase
+        .from('orders')
+        .select('*')
+        .inFilter('status', ['pending', 'on the way']) // ✅ filters statuses
+        .order('created_at', ascending: false);
+
+    // Convert to List<Order> safely
+    final List<Order> orders = (response as List<dynamic>)
+        .map((json) => Order.fromJson(json as Map<String, dynamic>))
+        .toList();
+
+    return orders;
+  }
+
+  Future<List<Order>> getOnTheWayOrders() async {
+    final supabase = Supabase.instance.client;
+
+    final response = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'on the way') // ✅ only "on the way" orders
+        .order('created_at', ascending: false);
+
+    final List<Order> orders = (response as List<dynamic>)
+        .map((json) => Order.fromJson(json as Map<String, dynamic>))
+        .toList();
+
+    return orders;
+  }
 }
+
+final orderRepositoryProvider = Provider<OrderRepository>((ref) {
+  return OrderRepository();
+});

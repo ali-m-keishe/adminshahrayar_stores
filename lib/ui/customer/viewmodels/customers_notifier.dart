@@ -41,6 +41,4 @@ final customersProvider =
   return CustomersNotifier();
 });
 
-final customerRepositoryProvider = Provider<CustomerRepository>((ref) {
-  return CustomerRepository();
-});
+
