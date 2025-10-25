@@ -1,202 +1,60 @@
-import '../models/promotion.dart';
+import 'package:adminshahrayar/data/models/promotion.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PromotionRepository {
-  // Get all promotions
+  final SupabaseClient _supabase = Supabase.instance.client;
+
+  // Get all promotions from the database
   Future<List<Promotion>> getAllPromotions() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return mockPromotions;
-  }
-
-  // Get promotion by ID
-  Future<Promotion?> getPromotionById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
     try {
-      return mockPromotions.firstWhere((promotion) => promotion.id == id);
+      final response = await _supabase
+          .from('promotions')
+          .select()
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((item) => Promotion.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
-      return null;
+      print('Error fetching promotions: $e');
+      throw Exception('Failed to load promotions');
     }
   }
 
-  // Get promotion by code
-  Future<Promotion?> getPromotionByCode(String code) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  Future<void> addPromotion(Map<String, dynamic> promoData) async {
     try {
-      return mockPromotions.firstWhere((promotion) => promotion.code == code);
+      await _supabase.from('promotions').insert(promoData);
     } catch (e) {
-      return null;
+      print('Error adding promotion: $e');
+      throw Exception('Failed to add promotion');
     }
   }
 
-  // Get active promotions
-  Future<List<Promotion>> getActivePromotions() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions.where((promotion) => promotion.isActive).toList();
-  }
-
-  // Get inactive promotions
-  Future<List<Promotion>> getInactivePromotions() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions.where((promotion) => !promotion.isActive).toList();
-  }
-
-  // Get promotions by discount type
-  Future<List<Promotion>> getPromotionsByType(DiscountType type) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions
-        .where((promotion) => promotion.discountType == type)
-        .toList();
-  }
-
-  // Get percentage promotions
-  Future<List<Promotion>> getPercentagePromotions() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions
-        .where((promotion) => promotion.discountType == DiscountType.Percentage)
-        .toList();
-  }
-
-  // Get fixed amount promotions
-  Future<List<Promotion>> getFixedAmountPromotions() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions
-        .where(
-            (promotion) => promotion.discountType == DiscountType.FixedAmount)
-        .toList();
-  }
-
-  // Search promotions by code or description
-  Future<List<Promotion>> searchPromotions(String query) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions
-        .where((promotion) =>
-            promotion.code.toLowerCase().contains(query.toLowerCase()) ||
-            promotion.description.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-  }
-
-  // Get promotions with minimum discount value
-  Future<List<Promotion>> getPromotionsWithMinimumDiscount(
-      double minValue) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockPromotions
-        .where((promotion) => promotion.discountValue >= minValue)
-        .toList();
-  }
-
-  // Add new promotion
-  Future<Promotion> addPromotion(Promotion promotion) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    // In a real app, this would make an API call to add the promotion
-    return promotion;
-  }
-
-  // Update promotion
-  Future<Promotion> updatePromotion(Promotion promotion) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    // In a real app, this would make an API call to update the promotion
-    return promotion;
-  }
-
-  // Activate promotion
-  Future<Promotion> activatePromotion(String id) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final promotion = await getPromotionById(id);
-    if (promotion == null) {
-      throw Exception('Promotion not found');
+  // Updates an existing promotion in the database
+  Future<void> updatePromotion(int id, Map<String, dynamic> promoData) async {
+    try {
+      await _supabase.from('promotions').update(promoData).eq('id', id);
+    } catch (e) {
+      print('Error updating promotion: $e');
+      throw Exception('Failed to update promotion');
     }
-
-    final updatedPromotion = Promotion(
-      id: promotion.id,
-      code: promotion.code,
-      description: promotion.description,
-      discountType: promotion.discountType,
-      discountValue: promotion.discountValue,
-      isActive: true,
-    );
-
-    // In a real app, this would make an API call to activate the promotion
-    return updatedPromotion;
   }
 
-  // Deactivate promotion
-  Future<Promotion> deactivatePromotion(String id) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final promotion = await getPromotionById(id);
-    if (promotion == null) {
-      throw Exception('Promotion not found');
+  // A specific, efficient method to toggle the active status
+  Future<void> togglePromotionStatus(int id, bool newStatus) async {
+    try {
+      await _supabase
+          .from('promotions')
+          .update({'is_active': newStatus}).eq('id', id);
+    } catch (e) {
+      print('Error toggling promotion status: $e');
+      throw Exception('Failed to toggle status');
     }
-
-    final updatedPromotion = Promotion(
-      id: promotion.id,
-      code: promotion.code,
-      description: promotion.description,
-      discountType: promotion.discountType,
-      discountValue: promotion.discountValue,
-      isActive: false,
-    );
-
-    // In a real app, this would make an API call to deactivate the promotion
-    return updatedPromotion;
-  }
-
-  // Delete promotion
-  Future<void> deletePromotion(String id) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // In a real app, this would make an API call to delete the promotion
-  }
-
-  // Validate promotion code
-  Future<bool> validatePromotionCode(String code) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final promotion = await getPromotionByCode(code);
-    return promotion != null && promotion.isActive;
-  }
-
-  // Get promotion statistics
-  Future<Map<String, dynamic>> getPromotionStatistics() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    final totalPromotions = mockPromotions.length;
-    final activePromotions = mockPromotions.where((p) => p.isActive).length;
-    final inactivePromotions = totalPromotions - activePromotions;
-
-    final percentagePromotions = mockPromotions
-        .where((p) => p.discountType == DiscountType.Percentage)
-        .length;
-    final fixedAmountPromotions = totalPromotions - percentagePromotions;
-
-    final averageDiscountValue =
-        mockPromotions.map((p) => p.discountValue).reduce((a, b) => a + b) /
-            totalPromotions;
-
-    return {
-      'totalPromotions': totalPromotions,
-      'activePromotions': activePromotions,
-      'inactivePromotions': inactivePromotions,
-      'percentagePromotions': percentagePromotions,
-      'fixedAmountPromotions': fixedAmountPromotions,
-      'averageDiscountValue': averageDiscountValue,
-    };
-  }
-
-  // Get best value promotions (highest discount value)
-  Future<List<Promotion>> getBestValuePromotions({int limit = 5}) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    final sortedPromotions = List<Promotion>.from(mockPromotions);
-    sortedPromotions.sort((a, b) => b.discountValue.compareTo(a.discountValue));
-    return sortedPromotions.take(limit).toList();
-  }
-
-  // Toggle promotion status
-  Future<Promotion> togglePromotionStatus(String id) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final promotion = await getPromotionById(id);
-    if (promotion == null) {
-      throw Exception('Promotion not found');
-    }
-
-    return promotion.isActive
-        ? await deactivatePromotion(id)
-        : await activatePromotion(id);
   }
 }
+
+// A provider for our repository, so the notifier can access it.
+final promotionRepositoryProvider = Provider<PromotionRepository>((ref) {
+  return PromotionRepository();
+});

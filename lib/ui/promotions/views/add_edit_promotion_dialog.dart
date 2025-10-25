@@ -1,5 +1,6 @@
 import 'package:adminshahrayar/data/models/promotion.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AddEditPromotionDialog extends StatefulWidget {
   final Promotion? promotion;
@@ -15,19 +16,36 @@ class _AddEditPromotionDialogState extends State<AddEditPromotionDialog> {
   late TextEditingController _codeController;
   late TextEditingController _descriptionController;
   late TextEditingController _valueController;
-  late DiscountType _selectedType;
+  late String _selectedType;
   late bool _isActive;
+  late DateTime _startDate;
+  late DateTime _endDate;
+
+  final List<String> _typeOptions = ['Percentage', 'FixedAmount'];
 
   @override
   void initState() {
     super.initState();
-    _codeController = TextEditingController(text: widget.promotion?.code ?? '');
+    _codeController = TextEditingController(text: widget.promotion?.name ?? '');
     _descriptionController =
         TextEditingController(text: widget.promotion?.description ?? '');
     _valueController = TextEditingController(
         text: widget.promotion?.discountValue.toString() ?? '');
-    _selectedType = widget.promotion?.discountType ?? DiscountType.Percentage;
     _isActive = widget.promotion?.isActive ?? true;
+
+    String initialType = 'Percentage';
+    if (widget.promotion != null) {
+      initialType = _typeOptions.firstWhere(
+        (opt) =>
+            opt.toLowerCase() == widget.promotion!.discountType.toLowerCase(),
+        orElse: () => 'Percentage',
+      );
+    }
+    _selectedType = initialType;
+
+    _startDate = widget.promotion?.startDate ?? DateTime.now();
+    _endDate = widget.promotion?.endDate ??
+        DateTime.now().add(const Duration(days: 30));
   }
 
   @override
@@ -41,11 +59,33 @@ class _AddEditPromotionDialogState extends State<AddEditPromotionDialog> {
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
       Navigator.of(context).pop({
-        'code': _codeController.text,
+        'name': _codeController.text,
         'description': _descriptionController.text,
-        'discountType': _selectedType,
-        'discountValue': double.tryParse(_valueController.text) ?? 0.0,
-        'isActive': _isActive,
+        'discount_type': _selectedType,
+        'discount_value': double.tryParse(_valueController.text) ?? 0.0,
+        'is_active': _isActive,
+        'start_date': _startDate,
+        'end_date': _endDate,
+      });
+    }
+  }
+
+  Future<void> _pickDate(BuildContext context, bool isStartDate) async {
+    final initialDate = isStartDate ? _startDate : _endDate;
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        if (isStartDate) {
+          _startDate = pickedDate;
+        } else {
+          _endDate = pickedDate;
+        }
       });
     }
   }
@@ -55,65 +95,104 @@ class _AddEditPromotionDialogState extends State<AddEditPromotionDialog> {
     return AlertDialog(
       title:
           Text(widget.promotion == null ? 'Add Promotion' : 'Edit Promotion'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(
-                    labelText: 'Promo Code (e.g., SAVE20)',
-                    border: OutlineInputBorder()),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter a code' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                    labelText: 'Description', border: OutlineInputBorder()),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter a description' : null,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<DiscountType>(
-                      value: _selectedType,
-                      decoration: const InputDecoration(
-                          labelText: 'Type', border: OutlineInputBorder()),
-                      items: DiscountType.values
-                          .map((type) => DropdownMenuItem(
-                              value: type, child: Text(type.name)))
-                          .toList(),
-                      onChanged: (value) =>
-                          setState(() => _selectedType = value!),
+      content: SizedBox(
+        width: 400, // Make the dialog wider to fit the date fields
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _codeController,
+                  decoration: const InputDecoration(
+                      labelText: 'Promo Code (e.g., SAVE20)',
+                      border: OutlineInputBorder()),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter a code' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                      labelText: 'Description', border: OutlineInputBorder()),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter a description' : null,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedType,
+                        decoration: const InputDecoration(
+                            labelText: 'Type', border: OutlineInputBorder()),
+                        items: _typeOptions
+                            .map((type) => DropdownMenuItem(
+                                value: type, child: Text(type)))
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _selectedType = value!),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _valueController,
-                      decoration: const InputDecoration(
-                          labelText: 'Value', border: OutlineInputBorder()),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Please enter a value' : null,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _valueController,
+                        decoration: const InputDecoration(
+                            labelText: 'Value', border: OutlineInputBorder()),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        validator: (value) =>
+                            value!.isEmpty ? 'Please enter a value' : null,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // vvv THIS IS THE NEW UI FOR DATE PICKERS vvv
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _pickDate(context, true),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Start Date',
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.calendar_month_outlined),
+                          ),
+                          child: Text(DateFormat.yMMMd().format(_startDate)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _pickDate(context, false),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'End Date',
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.calendar_month_outlined),
+                          ),
+                          child: Text(DateFormat.yMMMd().format(_endDate)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                // ^^^ THIS IS THE NEW UI FOR DATE PICKERS ^^^
+
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Active'),
+                  value: _isActive,
+                  onChanged: (value) => setState(() => _isActive = value),
+                ),
+              ],
+            ),
           ),
         ),
       ),

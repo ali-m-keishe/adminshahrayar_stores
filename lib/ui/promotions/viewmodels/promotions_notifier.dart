@@ -1,70 +1,50 @@
 import 'package:adminshahrayar/data/models/promotion.dart';
 import 'package:adminshahrayar/data/repositories/promotion_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart'; // We'll use a package to generate unique IDs
 
-class PromotionsNotifier extends StateNotifier<List<Promotion>> {
-  final PromotionRepository _promotionRepository = PromotionRepository();
-
-  PromotionsNotifier() : super([]) {
-    _fetchPromotions();
+// The AsyncNotifier directly manages the state (e.g., AsyncValue<List<Promotion>>)
+// so we don't need a separate PromotionState class.
+class PromotionsNotifier extends AsyncNotifier<List<Promotion>> {
+  // The build method is called automatically to fetch the initial data.
+  @override
+  Future<List<Promotion>> build() async {
+    // It reads the repository from its provider and fetches the data.
+    return ref.watch(promotionRepositoryProvider).getAllPromotions();
   }
 
-  Future<void> _fetchPromotions() async {
-    try {
-      final promotions = await _promotionRepository.getAllPromotions();
-      state = promotions;
-    } catch (e) {
-      // Fallback to mock data if repository fails
-      state = mockPromotions;
-    }
+  Future<void> addPromotion(Map<String, dynamic> promoData) async {
+    final repo = ref.read(promotionRepositoryProvider);
+    // Set UI to loading state while we perform the action
+    state = const AsyncLoading();
+    // Use AsyncValue.guard to handle potential errors
+    state = await AsyncValue.guard(() async {
+      await repo.addPromotion(promoData);
+      // Re-fetch the list to show the new promotion
+      return repo.getAllPromotions();
+    });
   }
 
-  Future<void> refreshPromotions() async {
-    await _fetchPromotions();
+  Future<void> updatePromotion(int id, Map<String, dynamic> promoData) async {
+    final repo = ref.read(promotionRepositoryProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await repo.updatePromotion(id, promoData);
+      return repo.getAllPromotions();
+    });
   }
 
-  Future<void> addPromotion(Promotion promo) async {
-    try {
-      await _promotionRepository.addPromotion(promo);
-      await _fetchPromotions(); // Refresh the data
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  Future<void> updatePromotion(Promotion updatedPromo) async {
-    try {
-      await _promotionRepository.updatePromotion(updatedPromo);
-      await _fetchPromotions(); // Refresh the data
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  Future<void> togglePromotionStatus(String id, bool value) async {
-    try {
-      await _promotionRepository.togglePromotionStatus(id);
-      await _fetchPromotions(); // Refresh the data
-    } catch (e) {
-      // Handle error
-    }
-  }
-
-  Future<void> deletePromotion(String id) async {
-    try {
-      await _promotionRepository.deletePromotion(id);
-      await _fetchPromotions(); // Refresh the data
-    } catch (e) {
-      // Handle error
-    }
+  Future<void> togglePromotionStatus(int id, bool newStatus) async {
+    final repo = ref.read(promotionRepositoryProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await repo.togglePromotionStatus(id, newStatus);
+      return repo.getAllPromotions();
+    });
   }
 }
 
+// The provider for our AsyncNotifier
 final promotionsProvider =
-    StateNotifierProvider<PromotionsNotifier, List<Promotion>>((ref) {
+    AsyncNotifierProvider<PromotionsNotifier, List<Promotion>>(() {
   return PromotionsNotifier();
 });
-
-// We can reuse the same uuidProvider from the staff notifier
-final uuidProvider = Provider((ref) => const Uuid());
