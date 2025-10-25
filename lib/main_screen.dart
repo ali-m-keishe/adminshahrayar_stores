@@ -2,7 +2,7 @@ import 'package:adminshahrayar/ui/analytics/views/analytics_page.dart';
 import 'package:adminshahrayar/ui/customer/views/customers_page.dart';
 import 'package:adminshahrayar/ui/dashboard/views/dashboard_page.dart';
 import 'package:adminshahrayar/ui/delivery_driver/views/delivery_page.dart';
-import 'package:adminshahrayar/ui/menu/views/menu_page.dart';
+import 'package:adminshahrayar/ui/menu/views/MenuInventoryPage.dart';
 import 'package:adminshahrayar/ui/orders/views/all_orders_page.dart';
 import 'package:adminshahrayar/ui/promotions/views/promotions_page.dart';
 import 'package:adminshahrayar/ui/settings/views/settings.dart';

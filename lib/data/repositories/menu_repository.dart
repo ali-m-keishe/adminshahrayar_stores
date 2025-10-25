@@ -1,186 +1,124 @@
-import '../models/menu_item.dart';
-import '../models/category.dart';
+// lib/data/repositories/menu_repository.dart
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/category.dart';
+import '../models/menu_item.dart';
+
+final supabase = Supabase.instance.client;
 
 class MenuRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // Get all menu items
-  Future<List<MenuItem>> getAllMenuItems() async {
+  /// 🔹 Fetch all categories
+  Future<List<Category>> getAllCategories() async {
     try {
-      final response = await _supabase
-          .from('items')
-          .select()
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((item) => MenuItem.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      // Fallback to mock data if Supabase fails
-      await Future.delayed(const Duration(milliseconds: 500));
-      return mockMenuItems;
-    }
-  }
-
-  // Get menu item by name
-  Future<MenuItem?> getMenuItemByName(String name) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    try {
-      return mockMenuItems.firstWhere((item) => item.name == name);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Get menu items by category ID
-  Future<List<MenuItem>> getMenuItemsByCategory(int categoryId) async {
-    try {
-      final response = await _supabase
-          .from('items')
-          .select()
-          .eq('category_id', categoryId)
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((item) => MenuItem.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return mockMenuItems
-          .where((item) => item.categoryId == categoryId)
-          .toList();
-    }
-  }
-
-  // Get all categories
-  Future<List<Category>> getCategories() async {
-    try {
+      print('Fetching all categories from Supabase...');
       final response = await _supabase
           .from('categories')
-          .select()
+          .select('*')
           .order('created_at', ascending: false);
 
+      print('✅ Categories fetched: ${response?.length ?? 0}');
+
       return (response as List)
-          .map((item) => Category.fromJson(item as Map<String, dynamic>))
+          .map((json) => Category.fromJson(json as Map<String, dynamic>))
           .toList();
-    } catch (e) {
-      // Fallback to mock data if Supabase fails
-      await Future.delayed(const Duration(milliseconds: 200));
-      return [
-        Category(
-            id: 1, name: 'Main Course', image: '', createdAt: DateTime.now()),
-        Category(
-            id: 2, name: 'Appetizer', image: '', createdAt: DateTime.now()),
-        Category(id: 3, name: 'Dessert', image: '', createdAt: DateTime.now()),
-        Category(id: 4, name: 'Sides', image: '', createdAt: DateTime.now()),
-      ];
+    } catch (e, stack) {
+      print('❌ Error fetching categories: $e');
+      print(stack);
+      return [];
     }
   }
 
-  // Search menu items by name
-  Future<List<MenuItem>> searchMenuItems(String query) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockMenuItems
-        .where((item) => item.name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-  }
-
-  // Get menu items in price range
-  Future<List<MenuItem>> getMenuItemsInPriceRange({
-    required double minPrice,
-    required double maxPrice,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return mockMenuItems
-        .where((item) => item.price >= minPrice && item.price <= maxPrice)
-        .toList();
-  }
-
-  // Get menu items sorted by price
-  Future<List<MenuItem>> getMenuItemsSortedByPrice(
-      {bool ascending = true}) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    final sortedItems = List<MenuItem>.from(mockMenuItems);
-    sortedItems.sort((a, b) =>
-        ascending ? a.price.compareTo(b.price) : b.price.compareTo(a.price));
-    return sortedItems;
-  }
-
-  // Add new menu item
-  Future<MenuItem> addMenuItem(MenuItem item) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    // In a real app, this would make an API call to add the menu item
-    return item;
-  }
-
-  // Update menu item
-  Future<MenuItem> updateMenuItem(MenuItem item) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    // In a real app, this would make an API call to update the menu item
-    return item;
-  }
-
-  // Delete menu item
-  Future<void> deleteMenuItem(String name) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // In a real app, this would make an API call to delete the menu item
-  }
-
-  // Get popular menu items (based on some criteria)
-  Future<List<MenuItem>> getPopularMenuItems({int limit = 5}) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    // For demo purposes, return items sorted by price descending
-    final popularItems = List<MenuItem>.from(mockMenuItems);
-    popularItems.sort((a, b) => b.price.compareTo(a.price));
-    return popularItems.take(limit).toList();
-  }
-
-  // Get menu statistics
-  Future<Map<String, dynamic>> getMenuStatistics() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    final categories =
-        mockMenuItems.map((item) => item.categoryId).toSet().length;
-    final totalItems = mockMenuItems.length;
-    final averagePrice =
-        mockMenuItems.map((item) => item.price).reduce((a, b) => a + b) /
-            totalItems;
-
-    final priceRange = {
-      'min': mockMenuItems
-          .map((item) => item.price)
-          .reduce((a, b) => a < b ? a : b),
-      'max': mockMenuItems
-          .map((item) => item.price)
-          .reduce((a, b) => a > b ? a : b),
-    };
-
-    return {
-      'totalItems': totalItems,
-      'categories': categories,
-      'averagePrice': averagePrice,
-      'priceRange': priceRange,
-    };
-  }
-
-  // Get menu items by multiple category IDs
-  Future<List<MenuItem>> getMenuItemsByCategories(List<int> categoryIds) async {
+  /// 🔹 Fetch all menu items (with category + optional addons & sizes)
+  Future<List<MenuItem>> getAllMenuItems() async {
     try {
-      final response = await _supabase
-          .from('items')
-          .select()
-          .inFilter('category_id', categoryIds)
-          .order('created_at', ascending: false);
+      final response = await _supabase.from('items').select('''
+      *,
+      category:category_id (id, name, image, created_at),
+      item_addons (
+        addon:addon_id (*)
+      ),
+      item_sizes (*)
+    ''').order('created_at', ascending: false);
 
-      return (response as List)
-          .map((item) => MenuItem.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      return mockMenuItems
-          .where((item) => categoryIds.contains(item.categoryId))
-          .toList();
+      final items = (response as List).map((json) {
+        final map = Map<String, dynamic>.from(json);
+
+        // Flatten item_addons → addons
+        if (map['item_addons'] != null) {
+          map['addons'] = (map['item_addons'] as List)
+              .map((e) => e['addon'])
+              .where((a) => a != null)
+              .toList();
+        }
+
+        // Flatten item_sizes → sizes (only S, M, L)
+        if (map['item_sizes'] != null) {
+          map['sizes'] = (map['item_sizes'] as List)
+              .where((s) =>
+                  s['size_name'] == 'S' ||
+                  s['size_name'] == 'M' ||
+                  s['size_name'] == 'L')
+              .toList();
+        }
+
+        if (map['category'] != null) {
+          map['category_name'] = map['category']['name'];
+        }
+
+        return MenuItem.fromJson(map);
+      }).toList();
+
+      return items;
+    } catch (e, stack) {
+      print('❌ Error fetching menu items: $e');
+      print(stack);
+      return [];
+    }
+  }
+
+  /// 🔹 Add a new menu item (with optional addons and sizes)
+  Future<void> addMenuItem(MenuItem item) async {
+    try {
+      print('🟢 Adding new menu item: ${item.name}');
+      await _supabase.from('items').insert(item.toJson());
+      print('✅ Menu item added successfully!');
+    } catch (e, stack) {
+      print('❌ Error adding menu item: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// 🔹 Delete a menu item by ID
+  Future<void> deleteMenuItem(int id) async {
+    try {
+      print('🗑️ Deleting menu item with ID: $id');
+      await _supabase.from('items').delete().eq('id', id);
+      print('✅ Menu item deleted successfully!');
+    } catch (e, stack) {
+      print('❌ Error deleting menu item: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// 🔹 Update a menu item by ID
+  Future<void> updateMenuItem(MenuItem item) async {
+    try {
+      print('✏️ Updating menu item with ID: ${item.id}');
+      await _supabase.from('items').update(item.toJson()).eq('id', item.id);
+      print('✅ Menu item updated successfully!');
+    } catch (e, stack) {
+      print('❌ Error updating menu item: $e');
+      print(stack);
+      rethrow;
     }
   }
 }
+
+final menuRepositoryProvider = Provider<MenuRepository>((ref) {
+  return MenuRepository();
+});
