@@ -28,4 +28,13 @@ class Addon {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Addon && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

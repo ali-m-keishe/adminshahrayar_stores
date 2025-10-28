@@ -33,6 +33,7 @@ class DashboardViewmodel extends AsyncNotifier<DashboardState> {
       final totalOrders = orders.length;
 
       final activeOrders = await orderRepository.getPendingAndOnTheWayOrders();
+      print("Loaded $activeOrders active orders");
 
       final deliveryOrders = await orderRepository.getOnTheWayOrders();
 
