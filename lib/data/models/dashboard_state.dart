@@ -7,6 +7,7 @@ class DashboardState {
   final int activeOrders;
   final int deliveryOrders;
   final List<Order> orders;
+  final int totalActiveOrdersCount; // For pagination
 
   const DashboardState({
     required this.totalRevenue,
@@ -15,6 +16,7 @@ class DashboardState {
     required this.activeOrders,
     required this.deliveryOrders,
     this.orders = const [],
+    this.totalActiveOrdersCount = 0,
   });
 
   DashboardState copyWith({
@@ -24,6 +26,7 @@ class DashboardState {
     int? activeOrders,
     int? deliveryOrders,
     List<Order>? orders,
+    int? totalActiveOrdersCount,
   }) {
     return DashboardState(
       totalRevenue: totalRevenue ?? this.totalRevenue,
@@ -32,6 +35,7 @@ class DashboardState {
       activeOrders: activeOrders ?? this.activeOrders,
       deliveryOrders: deliveryOrders ?? this.deliveryOrders,
       orders: orders ?? this.orders,
+      totalActiveOrdersCount: totalActiveOrdersCount ?? this.totalActiveOrdersCount,
     );
   }
 }

@@ -383,6 +383,41 @@ class OrderRepository {
     return orders;
   }
 
+  /// 🔹 Get all pending and on-the-way orders (for initial load, not paginated)
+  /// This is used by the dashboard viewmodel for initial stats
+  Future<Map<String, dynamic>> getPendingAndOnTheWayOrdersWithCount() async {
+    try {
+      print('🔍 Fetching all pending and on-the-way orders with count');
+
+      // Build count query - get all active orders
+      dynamic countQuery;
+
+      // Count query
+      countQuery = _supabase
+          .from('orders')
+          .select('id')
+          .inFilter('status', ['pending', 'on the way']);
+
+      // Get total count
+      final countResult = await countQuery;
+      final totalCount = (countResult as List).length;
+
+      print('✅ Total active orders count: $totalCount');
+
+      return {
+        'orders': <Order>[],
+        'totalCount': totalCount,
+      };
+    } catch (e, stack) {
+      print('❌ Error fetching active orders count: $e');
+      print(stack);
+      return {
+        'orders': <Order>[],
+        'totalCount': 0,
+      };
+    }
+  }
+
   Future<List<Order>> getOnTheWayOrders() async {
     final supabase = Supabase.instance.client;
 
@@ -397,6 +432,60 @@ class OrderRepository {
         .toList();
 
     return orders;
+  }
+
+  /// 🔹 Fetch paginated active orders (pending and on the way)
+  Future<Map<String, dynamic>> getPaginatedActiveOrders({
+    required int limit,
+    required int offset,
+  }) async {
+    try {
+      print('🔍 Fetching paginated active orders: limit=$limit, offset=$offset');
+
+      // Build queries for count and items
+      dynamic countQuery;
+      dynamic itemQuery;
+
+      // Count query - get all active orders
+      countQuery = _supabase
+          .from('orders')
+          .select('id')
+          .inFilter('status', ['pending', 'on the way']);
+
+      // Item query - get paginated active orders
+      itemQuery = _supabase
+          .from('orders')
+          .select('*')
+          .inFilter('status', ['pending', 'on the way'])
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      // Get total count
+      final countResult = await countQuery;
+      final totalCount = (countResult as List).length;
+
+      // Execute item query
+      final itemsResponse = await itemQuery;
+
+      // Parse orders
+      final orders = (itemsResponse as List)
+          .map((json) => Order.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      print('✅ Fetched ${orders.length} active orders (total: $totalCount)');
+
+      return {
+        'orders': orders,
+        'totalCount': totalCount,
+      };
+    } catch (e, stack) {
+      print('❌ Error fetching paginated active orders: $e');
+      print(stack);
+      return {
+        'orders': <Order>[],
+        'totalCount': 0,
+      };
+    }
   }
 }
 

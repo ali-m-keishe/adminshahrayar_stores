@@ -16,8 +16,38 @@ void _showOrderDetails(BuildContext context, Order order) {
   );
 }
 
-class DashboardPage extends ConsumerWidget {
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends ConsumerState<DashboardPage> {
+  int currentPage = 0;
+  final int ordersPerPage = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    // Note: First page is loaded automatically in the ViewModel's build() method
+  }
+
+  void _loadPage() {
+    final viewModel = ref.read(dashboardViewModelProvider.notifier);
+    final offset = currentPage * ordersPerPage;
+    viewModel.loadPaginatedActiveOrders(
+      limit: ordersPerPage, // Use ordersPerPage (currently 5)
+      offset: offset,
+    );
+  }
+
+  void _onPageChanged(int newPage) {
+    setState(() {
+      currentPage = newPage;
+    });
+    _loadPage();
+  }
 
   String _formatOrderDate(String dateString) {
     try {
@@ -29,34 +59,22 @@ class DashboardPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 👇 StreamProvider للـActive Orders
-    final activeOrdersAsync = ref.watch(activeOrdersStreamProvider);
-
+  Widget build(BuildContext context) {
     // باقي الـDashboard stats
-    final dashboardState = ref.watch(
-      dashboardViewModelProvider.select((asyncState) => asyncState.whenData(
-            (state) => (
-              state.orders,
-              state.activeOrders,
-              state.customerNumber,
-              state.totalOrders,
-              state.totalRevenue,
-              state.deliveryOrders,
-            ),
-          )),
-    );
+    final dashboardState = ref.watch(dashboardViewModelProvider);
 
     return dashboardState.when(
-      data: (tuple) {
-        final (
-          orders,
-          activeOrders,
-          customerNumber,
-          totalOrders,
-          totalRevenue,
-          deliveryOrders
-        ) = tuple;
+      data: (state) {
+        final orders = state.orders;
+        final activeOrders = state.activeOrders;
+        final customerNumber = state.customerNumber;
+        final totalOrders = state.totalOrders;
+        final totalRevenue = state.totalRevenue;
+        final deliveryOrders = state.deliveryOrders;
+        final totalActiveOrdersCount = state.totalActiveOrdersCount;
+
+        // Calculate total pages based on server-side count
+        final totalPages = (totalActiveOrdersCount / ordersPerPage).ceil().clamp(1, 999999);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -115,13 +133,13 @@ class DashboardPage extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // ✅ جدول الطلبات النشطة realtime
+              // ✅ جدول الطلبات النشطة مع الـ pagination
               Card(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: activeOrdersAsync.when(
-                    data: (orders) {
-                      return DataTable(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: DataTable(
                         columns: const [
                           DataColumn(label: Text('id')),
                           DataColumn(label: Text('created_at')),
@@ -191,6 +209,7 @@ class DashboardPage extends ConsumerWidget {
 
                                       if (confirmed == true) {
                                         await ref.read(ordersProvider.notifier).updateOrderStatus(order.id, newStatus);
+                                        _loadPage(); // Refresh current page after status update
                                         if (!context.mounted) return;
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
@@ -209,17 +228,32 @@ class DashboardPage extends ConsumerWidget {
                             ],
                           );
                         }).toList(),
-                      );
-                    },
-                    loading: () => const Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: Center(child: CircularProgressIndicator()),
+                      ),
                     ),
-                    error: (err, st) => Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Center(child: Text('Failed to load active orders: $err')),
-                    ),
-                  ),
+                    // Pagination controls
+                    if (totalPages > 1)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: currentPage > 0
+                                  ? () => _onPageChanged(currentPage - 1)
+                                  : null,
+                              icon: const Icon(Icons.chevron_left),
+                            ),
+                            Text('Page ${currentPage + 1} of $totalPages'),
+                            IconButton(
+                              onPressed: currentPage < totalPages - 1
+                                  ? () => _onPageChanged(currentPage + 1)
+                                  : null,
+                              icon: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
