@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 class PromotionsPage extends ConsumerWidget {
   const PromotionsPage({super.key});
 
-  // Helper function to show the dialog for adding or editing
   void _showPromoDialog(BuildContext context, WidgetRef ref,
       {Promotion? promotion}) async {
     final result = await showDialog<Map<String, dynamic>>(
@@ -18,27 +17,52 @@ class PromotionsPage extends ConsumerWidget {
 
     if (result != null) {
       final notifier = ref.read(promotionsProvider.notifier);
+      await notifier.savePromotion(id: promotion?.id, data: result);
+    }
+  }
 
-      // vvv THIS IS THE FIX vvv
-      // The dialog now returns real DateTime objects for the start and end dates.
-      // We must format them into ISO 8601 strings, which Supabase understands for 'timestamptz' columns.
-      result['start_date'] =
-          (result['start_date'] as DateTime).toIso8601String();
-      result['end_date'] = (result['end_date'] as DateTime).toIso8601String();
-      // ^^^ THIS IS THE FIX ^^^
+  void _showDeleteConfirmation(
+      BuildContext context, WidgetRef ref, Promotion promo) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text(
+            'Are you sure you want to delete the "${promo.name}" promotion? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(false), // User chose "Cancel"
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(true), // User chose "Delete"
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
 
-      if (promotion == null) {
-        // We are adding a new promotion
-        await notifier.addPromotion(result);
-      } else {
-        // We are updating an existing promotion
-        await notifier.updatePromotion(promotion.id, result);
-      }
+    // Only proceed if the user confirmed
+    if (confirm == true) {
+      await ref.read(promotionsProvider.notifier).deletePromotion(promo.id);
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // We set up a listener that watches for changes in the main promotions list.
+    ref.listen<AsyncValue<List<Promotion>>>(promotionsProvider,
+        (previous, next) {
+      // When the state changes from loading to data (i.e., a refresh was successful)...
+      if (previous is AsyncLoading && next is AsyncData) {
+        // ...we invalidate the links provider. This tells it to re-fetch next time it's needed.
+        ref.invalidate(promotionLinksProvider);
+      }
+    });
+
     final promotionsAsync = ref.watch(promotionsProvider);
 
     return Scaffold(
@@ -64,18 +88,22 @@ class PromotionsPage extends ConsumerWidget {
               child: DataTable(
                 columns: const [
                   DataColumn(label: Text('Code')),
-                  DataColumn(label: Text('Description')),
                   DataColumn(label: Text('Value')),
+                  DataColumn(label: Text('Applicable Items')),
                   DataColumn(label: Text('End Date')),
                   DataColumn(label: Text('Status')),
                   DataColumn(label: Text('Actions')),
                 ],
                 rows: promotions.map((promo) {
+                  final itemNames = (promo.items?.isEmpty ?? true)
+                      ? 'All Items'
+                      : promo.items!.map((item) => item.name).join(', ');
+
                   return DataRow(cells: [
                     DataCell(Text(promo.name,
                         style: const TextStyle(fontWeight: FontWeight.bold))),
-                    DataCell(Text(promo.description ?? '')),
                     DataCell(Text(promo.displayValue)),
+                    DataCell(Text(itemNames)),
                     DataCell(Text(DateFormat.yMMMd().format(promo.endDate))),
                     DataCell(
                       Switch(
@@ -88,10 +116,24 @@ class PromotionsPage extends ConsumerWidget {
                       ),
                     ),
                     DataCell(
-                      IconButton(
-                        icon: const Icon(Icons.edit_note),
-                        onPressed: () =>
-                            _showPromoDialog(context, ref, promotion: promo),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_note),
+                            tooltip: 'Edit Promotion',
+                            onPressed: () => _showPromoDialog(context, ref,
+                                promotion: promo),
+                          ),
+                          // vvv NEW DELETE BUTTON vvv
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
+                            tooltip: 'Delete Promotion',
+                            onPressed: () =>
+                                _showDeleteConfirmation(context, ref, promo),
+                          ),
+                          // ^^^ NEW DELETE BUTTON ^^^
+                        ],
                       ),
                     ),
                   ]);

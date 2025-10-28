@@ -2,43 +2,44 @@ import 'package:adminshahrayar/data/models/promotion.dart';
 import 'package:adminshahrayar/data/repositories/promotion_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// The AsyncNotifier directly manages the state (e.g., AsyncValue<List<Promotion>>)
-// so we don't need a separate PromotionState class.
 class PromotionsNotifier extends AsyncNotifier<List<Promotion>> {
-  // The build method is called automatically to fetch the initial data.
   @override
   Future<List<Promotion>> build() async {
-    // It reads the repository from its provider and fetches the data.
+    // This fetches the initial list of promotions when the page loads.
     return ref.watch(promotionRepositoryProvider).getAllPromotions();
   }
 
-  Future<void> addPromotion(Map<String, dynamic> promoData) async {
+  Future<void> savePromotion(
+      {int? id, required Map<String, dynamic> data}) async {
     final repo = ref.read(promotionRepositoryProvider);
-    // Set UI to loading state while we perform the action
-    state = const AsyncLoading();
-    // Use AsyncValue.guard to handle potential errors
+    state = const AsyncLoading(); // Set UI to loading
+
+    // Use AsyncValue.guard to safely handle errors from the database call
     state = await AsyncValue.guard(() async {
-      await repo.addPromotion(promoData);
-      // Re-fetch the list to show the new promotion
+      await repo.savePromotion(id: id, data: data);
+      // After saving, re-fetch the entire list to show the changes
       return repo.getAllPromotions();
     });
   }
 
-  Future<void> updatePromotion(int id, Map<String, dynamic> promoData) async {
-    final repo = ref.read(promotionRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await repo.updatePromotion(id, promoData);
-      return repo.getAllPromotions();
-    });
-  }
-
+  // Method to toggle the active status of a promotion
   Future<void> togglePromotionStatus(int id, bool newStatus) async {
     final repo = ref.read(promotionRepositoryProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await repo.togglePromotionStatus(id, newStatus);
-      return repo.getAllPromotions();
+      return repo.getAllPromotions(); // Refresh list
+    });
+  }
+
+  Future<void> deletePromotion(int id) async {
+    final repo = ref.read(promotionRepositoryProvider);
+    state = const AsyncLoading(); // Show loading spinner
+
+    // Use guard to handle errors and refresh the list automatically
+    state = await AsyncValue.guard(() async {
+      await repo.deletePromotion(id);
+      return repo.getAllPromotions(); // Re-fetch the list to show the deletion
     });
   }
 }

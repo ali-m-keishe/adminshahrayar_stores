@@ -1,3 +1,5 @@
+import 'package:adminshahrayar/data/models/menu_item.dart';
+
 class Promotion {
   final int id; // 'bigint' in Supabase maps to int in Dart
   final String name; // This is the promo code, e.g., 'SAVE20'
@@ -7,6 +9,7 @@ class Promotion {
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
+  final List<MenuItem>? items;
 
   Promotion({
     required this.id,
@@ -17,6 +20,7 @@ class Promotion {
     required this.startDate,
     required this.endDate,
     required this.isActive,
+    this.items,
   });
 
   // Helper to display the discount value nicely
@@ -29,6 +33,7 @@ class Promotion {
 
   // A factory constructor to create a Promotion from a JSON map (data from Supabase)
   factory Promotion.fromJson(Map<String, dynamic> json) {
+    final promoItemsList = json['promotion_items'];
     return Promotion(
       id: json['id'] as int,
       name: json['name'] as String,
@@ -38,6 +43,13 @@ class Promotion {
       startDate: DateTime.parse(json['start_date'] as String),
       endDate: DateTime.parse(json['end_date'] as String),
       isActive: json['is_active'] as bool,
+      items: (promoItemsList != null && promoItemsList is List)
+          ? promoItemsList
+              // Ensure the 'items' key within the link object is not null
+              .where((promoItem) => promoItem['items'] != null)
+              .map((promoItem) => MenuItem.fromJson(promoItem['items']))
+              .toList()
+          : [], // Default to an empty list instead of null
     );
   }
 
