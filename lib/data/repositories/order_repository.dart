@@ -434,6 +434,59 @@ class OrderRepository {
     return orders;
   }
 
+  /// 🔹 Fetch paginated all orders (no status filter)
+  Future<Map<String, dynamic>> getPaginatedAllOrders({
+    required int limit,
+    required int offset,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      print('🔍 Fetching paginated ALL orders: limit=$limit, offset=$offset');
+
+      // Count query
+      dynamic countQuery = _supabase.from('orders').select('id');
+      if (startDate != null) {
+        countQuery = countQuery.gte('created_at', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        countQuery = countQuery.lte('created_at', endDate.toIso8601String());
+      }
+      final countResult = await countQuery;
+      final totalCount = (countResult as List).length;
+
+      // Items query with pagination
+      dynamic itemsQuery = _supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+      if (startDate != null) {
+        itemsQuery = itemsQuery.gte('created_at', startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        itemsQuery = itemsQuery.lte('created_at', endDate.toIso8601String());
+      }
+      final itemsResponse = await itemsQuery;
+
+      final orders = (itemsResponse as List)
+          .map((json) => Order.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      print('✅ Fetched ${orders.length} orders (total: $totalCount)');
+      return {
+        'orders': orders,
+        'totalCount': totalCount,
+      };
+    } catch (e, stack) {
+      print('❌ Error fetching paginated all orders: $e');
+      print(stack);
+      return {
+        'orders': <Order>[],
+        'totalCount': 0,
+      };
+    }
+  }
   /// 🔹 Fetch paginated active orders (pending and on the way)
   Future<Map<String, dynamic>> getPaginatedActiveOrders({
     required int limit,

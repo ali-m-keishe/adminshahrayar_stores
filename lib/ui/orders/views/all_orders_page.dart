@@ -7,15 +7,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-class AllOrdersPage extends ConsumerWidget {
+class AllOrdersPage extends ConsumerStatefulWidget {
   const AllOrdersPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // نراقب القائمة المفلترة
-    final filteredOrders = ref.watch(filteredOrdersProvider);
-    // نحتاج القائمة الكاملة للبحث
-    final allOrders = ref.watch(ordersProvider).valueOrNull?.orders ?? [];
+  ConsumerState<AllOrdersPage> createState() => _AllOrdersPageState();
+}
+
+class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
+  final int itemsPerPage = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPage();
+    });
+  }
+
+  void _loadPage() {
+    final notifier = ref.read(ordersProvider.notifier);
+    final currentPage = ref.read(ordersPageIndexProvider);
+    final offset = currentPage * itemsPerPage;
+    notifier.loadPaginatedAllOrders(limit: itemsPerPage, offset: offset);
+  }
+
+  void _onPageChanged(int newPage) {
+    ref.read(ordersPageIndexProvider.notifier).state = newPage;
+    _loadPage();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ordersState = ref.watch(ordersProvider).valueOrNull;
+    final currentPage = ref.watch(ordersPageIndexProvider);
+    final orders = ordersState?.orders ?? [];
+    final totalCount = ordersState?.totalOrdersCount ?? 0;
+    final allOrders = orders; // for search delegate
+
+    final totalPages = (totalCount / itemsPerPage).ceil().clamp(1, 999999);
 
     return Scaffold(
       appBar: AppBar(
@@ -47,9 +77,9 @@ class AllOrdersPage extends ConsumerWidget {
             const _FilterChips(),
             const SizedBox(height: 16),
             Card(
-              child: SizedBox(
-                width: double.infinity,
-                child: DataTable(
+            child: SizedBox(
+              width: double.infinity,
+              child: DataTable(
                   columns: const [
                     DataColumn(label: Text('id')),
                     DataColumn(label: Text('created_at')),
@@ -58,8 +88,8 @@ class AllOrdersPage extends ConsumerWidget {
                     DataColumn(label: Text('payment_token')),
                     DataColumn(label: Text('address_id')),
                   ],
-                  // استخدام القائمة المفلترة
-                  rows: filteredOrders.map((order) {
+                  // Server-side paginated orders
+                  rows: orders.map((order) {
                     return DataRow(
                       // ✅ تم إزالة onSelectChanged لإزالة الـ checkboxes
                       cells: [
@@ -112,6 +142,20 @@ class AllOrdersPage extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            if (totalPages > 1)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                      onPressed: currentPage > 0 ? () => _onPageChanged(currentPage - 1) : null,
+                      icon: const Icon(Icons.chevron_left)),
+                  Text('Page ${currentPage + 1} of $totalPages'),
+                  IconButton(
+                      onPressed: currentPage < totalPages - 1 ? () => _onPageChanged(currentPage + 1) : null,
+                      icon: const Icon(Icons.chevron_right)),
+                ],
+              ),
           ],
         ),
       ),
@@ -142,6 +186,11 @@ class _FilterChips extends ConsumerWidget {
           onSelected: (isSelected) {
             if (isSelected) {
               ref.read(allOrdersFilterProvider.notifier).setFilter(filter);
+              // Reset to page 0 and reload with date filter
+              ref.read(ordersPageIndexProvider.notifier).state = 0;
+              ref
+                  .read(ordersProvider.notifier)
+                  .loadPaginatedAllOrders(limit: 5, offset: 0, filter: filter);
             }
           },
         );

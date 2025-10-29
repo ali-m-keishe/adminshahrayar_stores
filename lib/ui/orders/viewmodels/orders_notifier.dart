@@ -7,13 +7,23 @@ import 'package:audioplayers/audioplayers.dart';
 class OrdersState {
   final bool isKanbanView;
   final List<Order> orders;
+  final int totalOrdersCount;
 
-  OrdersState({this.isKanbanView = true, this.orders = const []});
+  OrdersState({
+    this.isKanbanView = true,
+    this.orders = const [],
+    this.totalOrdersCount = 0,
+  });
 
-  OrdersState copyWith({bool? isKanbanView, List<Order>? orders}) {
+  OrdersState copyWith({
+    bool? isKanbanView,
+    List<Order>? orders,
+    int? totalOrdersCount,
+  }) {
     return OrdersState(
       isKanbanView: isKanbanView ?? this.isKanbanView,
       orders: orders ?? this.orders,
+      totalOrdersCount: totalOrdersCount ?? this.totalOrdersCount,
     );
   }
 }
@@ -25,16 +35,71 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
   @override
   Future<OrdersState> build() async {
     _orderRepository = ref.read(orderRepositoryProvider);
-    final orders = await _orderRepository.getAllOrders();
+    // Load first page (default 5) and total count, respecting filter
+    final filter = ref.read(allOrdersFilterProvider);
+    final dateRange = _computeDateRange(filter);
+    final result = await _orderRepository.getPaginatedAllOrders(
+      limit: 5,
+      offset: 0,
+      startDate: dateRange['start'],
+      endDate: dateRange['end'],
+    );
+    final orders = result['orders'] as List<Order>;
+    final totalCount = result['totalCount'] as int;
     dashboardViewModel =
         ref.read(dashboardViewModelProvider.notifier); // Refresh dashboard data
 
-    return OrdersState(orders: orders);
+    return OrdersState(orders: orders, totalOrdersCount: totalCount);
   }
 
   Future<void> refreshOrders() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async => await build());
+  }
+
+  /// 🔹 Load paginated all orders
+  Future<void> loadPaginatedAllOrders({
+    required int limit,
+    required int offset,
+    DateFilter? filter,
+  }) async {
+    final current = state.valueOrNull ?? OrdersState();
+    try {
+      final activeFilter = filter ?? ref.read(allOrdersFilterProvider);
+      final dateRange = _computeDateRange(activeFilter);
+      final result = await _orderRepository.getPaginatedAllOrders(
+        limit: limit,
+        offset: offset,
+        startDate: dateRange['start'],
+        endDate: dateRange['end'],
+      );
+      final orders = result['orders'] as List<Order>;
+      final totalCount = result['totalCount'] as int;
+      state = AsyncData(current.copyWith(orders: orders, totalOrdersCount: totalCount));
+    } catch (e) {
+      // keep current state on error
+    }
+  }
+
+  Map<String, DateTime?> _computeDateRange(DateFilter? filter) {
+    final now = DateTime.now();
+    switch (filter ?? DateFilter.All) {
+      case DateFilter.Today:
+        final start = DateTime(now.year, now.month, now.day);
+        final end = start.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
+        return {'start': start, 'end': end};
+      case DateFilter.LastWeek:
+        final start = now.subtract(const Duration(days: 7));
+        return {'start': start, 'end': null};
+      case DateFilter.LastMonth:
+        final start = now.subtract(const Duration(days: 30));
+        return {'start': start, 'end': null};
+      case DateFilter.LastYear:
+        final start = now.subtract(const Duration(days: 365));
+        return {'start': start, 'end': null};
+      case DateFilter.All:
+        return {'start': null, 'end': null};
+    }
   }
 
   void toggleView() {
@@ -90,6 +155,9 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
     }
   }
 }
+
+/// Shared pagination index for All Orders
+final ordersPageIndexProvider = StateProvider<int>((ref) => 0);
 
 final ordersProvider = AsyncNotifierProvider<OrdersNotifier, OrdersState>(() {
   return OrdersNotifier();

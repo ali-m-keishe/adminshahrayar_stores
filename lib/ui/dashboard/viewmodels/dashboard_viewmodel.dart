@@ -46,9 +46,9 @@ class DashboardViewmodel extends AsyncNotifier<DashboardState> {
       );
       final activeOrders = paginatedResult['orders'] as List<Order>;
       print("✅ Loaded ${activeOrders.length} orders on first page");
-
+  
       final deliveryOrders = await orderRepository.getOnTheWayOrders();
-
+   
       return DashboardState(
         totalRevenue: totalRevenue,
         customerNumber: customerNumber,
