@@ -2,6 +2,7 @@ import 'package:adminshahrayar/data/models/order.dart';
 import 'package:adminshahrayar/ui/dashboard/views/order_details_dialog.dart';
 import 'package:adminshahrayar/ui/orders/viewmodels/orders_notifier.dart';
 import 'package:adminshahrayar/ui/orders/views/order_search_delegate.dart';
+import 'package:adminshahrayar/ui/orders/views/address_details_dialog.dart';
 import 'package:adminshahrayar/ui/orders/views/order_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -132,8 +133,15 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
                         ),
                         DataCell(
                           InkWell(
-                            onTap: () => _showOrderDetails(context, order),
-                            child: Text(order.addressId.toString()),
+                            onTap: () => _showAddressDetails(context, order.addressId),
+                            child: Text(
+                              order.addressId.toString(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -166,6 +174,13 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
     showDialog(
       context: context,
       builder: (context) => OrderDetailsDialog(order: order),
+    );
+  }
+
+  void _showAddressDetails(BuildContext context, int addressId) {
+    showDialog(
+      context: context,
+      builder: (context) => AddressDetailsDialog(addressId: addressId),
     );
   }
 }

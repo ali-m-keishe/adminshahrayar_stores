@@ -89,14 +89,25 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
         final end = start.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
         return {'start': start, 'end': end};
       case DateFilter.LastWeek:
-        final start = now.subtract(const Duration(days: 7));
-        return {'start': start, 'end': null};
+        // Previous full calendar week (Mon–Sun)
+        final startOfThisWeek = DateTime(now.year, now.month, now.day)
+            .subtract(Duration(days: (now.weekday - DateTime.monday)));
+        final start = startOfThisWeek.subtract(const Duration(days: 7));
+        final end = startOfThisWeek.subtract(const Duration(seconds: 1));
+        return {'start': start, 'end': end};
       case DateFilter.LastMonth:
-        final start = now.subtract(const Duration(days: 30));
-        return {'start': start, 'end': null};
+        // Previous full calendar month
+        final startOfThisMonth = DateTime(now.year, now.month, 1);
+        final previousMonth = DateTime(now.year, now.month - 1, 1);
+        final start = previousMonth;
+        final end = startOfThisMonth.subtract(const Duration(seconds: 1));
+        return {'start': start, 'end': end};
       case DateFilter.LastYear:
-        final start = now.subtract(const Duration(days: 365));
-        return {'start': start, 'end': null};
+        // Previous full calendar year
+        final startOfThisYear = DateTime(now.year, 1, 1);
+        final start = DateTime(now.year - 1, 1, 1);
+        final end = startOfThisYear.subtract(const Duration(seconds: 1));
+        return {'start': start, 'end': end};
       case DateFilter.All:
         return {'start': null, 'end': null};
     }

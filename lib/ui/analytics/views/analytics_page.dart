@@ -1,89 +1,299 @@
-import 'package:adminshahrayar/ui/analytics/viewmodels/analytics_notifier.dart';
+import 'package:adminshahrayar/ui/analytics/viewmodels/analytics_viewmodel.dart';
 import 'package:adminshahrayar/ui/dashboard/views/stat_card.dart';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AnalyticsPage extends ConsumerWidget {
-  const AnalyticsPage({super.key});
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+
+// Test widget to debug revenue data
+class RevenueDebugWidget extends ConsumerWidget {
+  const RevenueDebugWidget({super.key});
+
+  Future<Map<String, dynamic>> _fetchDebugData() async {
+    final supabase = Supabase.instance.client;
+    
+    try {
+      // Fetch all carts with orders
+      final cartsResponse = await supabase
+          .from('cart')
+          .select('''
+            cart_id,
+            created_at,
+            total_price,
+            status,
+            orders!inner(
+              id,
+              created_at,
+              status
+            )
+          ''')
+          .order('created_at', ascending: false);
+      
+      final carts = cartsResponse as List<dynamic>;
+      
+      // Analyze the data
+      final now = DateTime.now();
+      final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+      
+      double totalRevenue = 0;
+      double last30DaysRevenue = 0;
+      int totalOrders = carts.length;
+      int last30DaysOrders = 0;
+      List<Map<String, dynamic>> orderDetails = [];
+      Map<String, double> dailyRevenue = {};
+      
+      for (final cart in carts) {
+        final createdAt = DateTime.parse(cart['created_at']);
+        final price = (cart['total_price'] as num).toDouble();
+        
+        totalRevenue += price;
+        
+        if (createdAt.isAfter(thirtyDaysAgo)) {
+          last30DaysRevenue += price;
+          last30DaysOrders++;
+          
+          final dateKey = DateFormat('MM/dd').format(createdAt);
+          dailyRevenue[dateKey] = (dailyRevenue[dateKey] ?? 0) + price;
+        }
+        
+        orderDetails.add({
+          'cart_id': cart['cart_id'],
+          'date': DateFormat('yyyy-MM-dd HH:mm').format(createdAt),
+          'price': price,
+          'days_ago': now.difference(createdAt).inDays,
+          'in_30_days': createdAt.isAfter(thirtyDaysAgo),
+        });
+      }
+      
+      return {
+        'total_revenue': totalRevenue,
+        'last_30_days_revenue': last30DaysRevenue,
+        'total_orders': totalOrders,
+        'last_30_days_orders': last30DaysOrders,
+        'order_details': orderDetails,
+        'daily_revenue': dailyRevenue,
+      };
+    } catch (e) {
+      return {
+        'error': e.toString(),
+      };
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the provider to get the current state.
-    // The UI will automatically update if this data ever changes.
-    final state = ref.watch(analyticsProvider);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Revenue Debug Information'),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _fetchDebugData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError || (snapshot.data?.containsKey('error') ?? false)) {
+            return Center(
+              child: Text('Error: ${snapshot.error ?? snapshot.data!['error']}'),
+            );
+          }
+          
+          final data = snapshot.data!;
+          
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Summary Card
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Revenue Summary',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Divider(),
+                        _buildRow('Total Revenue (All Time)', 
+                          '\$${data['total_revenue'].toStringAsFixed(2)}',
+                          Colors.green),
+                        _buildRow('Last 30 Days Revenue', 
+                          '\$${data['last_30_days_revenue'].toStringAsFixed(2)}',
+                          Colors.blue),
+                        const SizedBox(height: 8),
+                        _buildRow('Total Orders', 
+                          '${data['total_orders']}',
+                          Colors.orange),
+                        _buildRow('Last 30 Days Orders', 
+                          '${data['last_30_days_orders']}',
+                          Colors.purple),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Daily Revenue in Last 30 Days
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Daily Revenue (Last 30 Days)',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Divider(),
+                        if ((data['daily_revenue'] as Map).isEmpty)
+                          const Text('No revenue in the last 30 days')
+                        else
+                          ...(data['daily_revenue'] as Map<String, double>)
+                              .entries
+                              .map((entry) => Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(entry.key),
+                                        Text(
+                                          '\$${entry.value.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Order Details
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'All Orders (Newest First)',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Divider(),
+                        ...(data['order_details'] as List<Map<String, dynamic>>)
+                            .take(20)  // Show first 20 orders
+                            .map((order) => Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Colors.grey.withOpacity(0.2),
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Cart #${order['cart_id']}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              order['date'],
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '\$${order['price'].toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: order['in_30_days'] 
+                                                ? Colors.green 
+                                                : Colors.grey,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${order['days_ago']} days ago',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: order['in_30_days']
+                                                ? Colors.green[700]
+                                                : Colors.red[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ))
+                            .toList(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  Widget _buildRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Analytics',
-            style: Theme.of(context)
-                .textTheme
-                .headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          // We are re-using the StatCard widget from the Dashboard.
-          const Wrap(
-            spacing: 24,
-            runSpacing: 24,
-            children: [
-              StatCard(
-                  title: 'Total Revenue',
-                  value: '\$12,450',
-                  icon: Icons.monetization_on,
-                  color: Colors.green),
-              StatCard(
-                  title: 'Total Orders',
-                  value: '789',
-                  icon: Icons.shopping_cart,
-                  color: Colors.blue),
-              StatCard(
-                  title: 'Avg. Order Value',
-                  value: '\$14.89',
-                  icon: Icons.price_check,
-                  color: Colors.orange),
-              StatCard(
-                  title: 'Customers',
-                  value: '450',
-                  icon: Icons.people,
-                  color: Colors.purple),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // For responsive layout on different screen sizes.
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 800) {
-                // On smaller screens, stack the charts vertically.
-                return Column(
-                  children: [
-                    _RevenueChart(revenueData: state.weeklyRevenueData),
-                    const SizedBox(height: 24),
-                    _OrderTypesChart(orderTypeData: state.orderTypeData),
-                  ],
-                );
-              }
-              // On larger screens, display them side-by-side.
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _RevenueChart(revenueData: state.weeklyRevenueData),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    flex: 2,
-                    child: _OrderTypesChart(orderTypeData: state.orderTypeData),
-                  ),
-                ],
-              );
-            },
+          Text(label),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
           ),
         ],
       ),
@@ -91,41 +301,217 @@ class AnalyticsPage extends ConsumerWidget {
   }
 }
 
-// A dedicated widget for the Revenue Line Chart
+// Add this to a route in your app to test
+// Example usage:
+// Navigator.push(
+//   context,
+//   MaterialPageRoute(builder: (context) => const RevenueDebugWidget()),
+// );
+
+class AnalyticsPage extends ConsumerStatefulWidget {
+  const AnalyticsPage({super.key});
+
+  @override
+  ConsumerState<AnalyticsPage> createState() => _AnalyticsPageState();
+}
+
+class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
+  // Slider range: view last 30-day window ending from -365 to +30
+  double _offset = 0; // days offset, double to fit Slider API
+
+  @override
+  Widget build(BuildContext context) {
+    final analyticsAsync = ref.watch(analyticsViewmodelProvider);
+
+    return analyticsAsync.when(
+      data: (state) {
+        final revenueValues = state.monthlyRevenueData
+            .map((e) => (e['revenue'] as num).toDouble())
+            .toList();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Analytics',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+
+              // Stats Cards
+              Wrap(
+                spacing: 24,
+                runSpacing: 24,
+                children: [
+                  StatCard(
+                      title: 'Total Revenue',
+                      value: '\$${state.totalRevenue.toStringAsFixed(2)}',
+                      icon: Icons.monetization_on,
+                      color: Colors.green),
+                  StatCard(
+                      title: 'Total Orders',
+                      value: '${state.totalOrders}',
+                      icon: Icons.shopping_cart,
+                      color: Colors.blue),
+                  StatCard(
+                      title: 'Avg. Order Value',
+                      value: '\$${state.avgOrderValue.toStringAsFixed(2)}',
+                      icon: Icons.price_check,
+                      color: Colors.orange),
+                  StatCard(
+                      title: 'Customers',
+                      value: '${state.customerNumber}',
+                      icon: Icons.people,
+                      color: Colors.purple),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Revenue Chart
+              _RevenueChart(
+                revenueData: revenueValues,
+                dayLabels: state.monthlyRevenueData
+                    .map((e) => e['day'] as String)
+                    .toList(),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Date window slider
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Move 30-day window'),
+                          Text('${_offset.toInt()} days'),
+                        ],
+                      ),
+                      Slider(
+                        value: _offset,
+                        min: -365,
+                        max: 30,
+                        divisions: 395,
+                        label: _offset.toInt().toString(),
+                        onChanged: (v) async {
+                          setState(() => _offset = v);
+                          await ref.read(analyticsViewmodelProvider.notifier).setDayOffset(_offset.toInt());
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error loading analytics: $err',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 📈 Revenue Chart Widget
 class _RevenueChart extends StatelessWidget {
   final List<double> revenueData;
-  const _RevenueChart({required this.revenueData});
+  final List<String> dayLabels;
+
+  const _RevenueChart({
+    required this.revenueData,
+    required this.dayLabels,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Find the maximum value for better Y-axis scaling
+    final maxY = revenueData.isEmpty
+        ? 100.0
+        : revenueData.reduce((a, b) => a > b ? a : b) * 1.2;
+
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Revenue (Last 7 Days)', style: theme.textTheme.titleLarge),
+            Text('Revenue (Last 30 Days)', style: theme.textTheme.titleLarge),
             const SizedBox(height: 24),
             SizedBox(
               height: 300,
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(show: false),
+                  minX: 0,
+                  maxX: 29,
+                  minY: 0,
+                  maxY: maxY,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: maxY / 5,
+                    getDrawingHorizontalLine: (value) {
+                      return FlLine(
+                        color: Colors.grey.withOpacity(0.1),
+                        strokeWidth: 1,
+                      );
+                    },
+                  ),
                   titlesData: FlTitlesData(
                     show: true,
                     rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: _bottomTitleWidgets,
-                            reservedSize: 30)),
-                    leftTitles: const AxisTitles(
-                        sideTitles:
-                            SideTitles(showTitles: true, reservedSize: 40)),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 5,
+                        getTitlesWidget: (value, meta) =>
+                            _bottomTitleWidgets(value, meta, dayLabels),
+                        reservedSize: 35,
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: maxY / 5,
+                        getTitlesWidget: (value, meta) {
+                          return Text(
+                            '\$${value.toInt()}',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          );
+                        },
+                        reservedSize: 40,
+                      ),
+                    ),
                   ),
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
@@ -136,24 +522,48 @@ class _RevenueChart extends StatelessWidget {
                           .map((e) => FlSpot(e.key.toDouble(), e.value))
                           .toList(),
                       isCurved: true,
-                      gradient: LinearGradient(colors: [
-                        theme.primaryColor,
-                        theme.primaryColor.withOpacity(0.3)
-                      ]),
-                      barWidth: 5,
+                      curveSmoothness: 0.3,
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.primaryColor,
+                          theme.primaryColor.withOpacity(0.3),
+                        ],
+                      ),
+                      barWidth: 2,
                       isStrokeCapRound: true,
-                      dotData: const FlDotData(show: false),
+                      dotData: FlDotData(show: false),
                       belowBarData: BarAreaData(
-                          show: true,
-                          gradient: LinearGradient(
-                              colors: [
-                                theme.primaryColor.withOpacity(0.3),
-                                Colors.transparent
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter)),
+                        show: true,
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.primaryColor.withOpacity(0.15),
+                            theme.primaryColor.withOpacity(0.0),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
                     ),
                   ],
+                  lineTouchData: LineTouchData(
+                    enabled: true,
+                    handleBuiltInTouches: true,
+                    touchTooltipData: LineTouchTooltipData(
+                      fitInsideHorizontally: true,
+                      fitInsideVertically: true,
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((barSpot) {
+                          final xIndex = barSpot.x.toInt().clamp(0, dayLabels.length - 1);
+                          final day = (xIndex >= 0 && xIndex < dayLabels.length) ? dayLabels[xIndex] : '';
+                          final value = barSpot.y;
+                          return LineTooltipItem(
+                            '$day\n\$${value.toStringAsFixed(2)}',
+                            const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -163,86 +573,105 @@ class _RevenueChart extends StatelessWidget {
     );
   }
 
-  Widget _bottomTitleWidgets(double value, TitleMeta meta) {
-    const style = TextStyle(fontWeight: FontWeight.bold, fontSize: 14);
-    const dayMap = {
-      0: 'Mon',
-      1: 'Tue',
-      2: 'Wed',
-      3: 'Thu',
-      4: 'Fri',
-      5: 'Sat',
-      6: 'Sun'
-    };
+  Widget _bottomTitleWidgets(
+      double value, TitleMeta meta, List<String> dayLabels) {
+    const style = TextStyle(
+      fontWeight: FontWeight.w600,
+      fontSize: 10,
+      color: Colors.grey,
+    );
+
+    if (value.toInt() != value || value < 0 || value >= dayLabels.length) {
+      return const SizedBox.shrink();
+    }
+    
+    if (value.toInt() % 5 != 0 && value != dayLabels.length - 1) {
+      return const SizedBox.shrink();
+    }
+
     return SideTitleWidget(
-        axisSide: meta.axisSide,
-        child: Text(dayMap[value.toInt()] ?? '', style: style));
+      axisSide: meta.axisSide,
+      child: Text(
+        dayLabels[value.toInt()],
+        style: style,
+      ),
+    );
   }
 }
 
-// A dedicated widget for the Order Types Pie Chart
-class _OrderTypesChart extends StatelessWidget {
-  final Map<String, double> orderTypeData;
-  const _OrderTypesChart({required this.orderTypeData});
+
+// Helper widget for quick stats
+class _QuickStat extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  const _QuickStat({
+    required this.icon,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = [
-      Colors.purple.shade400,
-      theme.colorScheme.secondary,
-      Colors.orange.shade400
-    ];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Order Types', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 300,
-              child: PieChart(
-                PieChartData(
-                  sections: orderTypeData.entries.map((entry) {
-                    final index =
-                        orderTypeData.keys.toList().indexOf(entry.key);
-                    return PieChartSectionData(
-                      color: colors[index % colors.length],
-                      value: entry.value,
-                      title: '${entry.value.toInt()}%',
-                      radius: 80,
-                      titleStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    );
-                  }).toList(),
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 50,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Legend
-            ...orderTypeData.entries.map((entry) {
-              final index = orderTypeData.keys.toList().indexOf(entry.key);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
-                child: Row(children: [
-                  Container(
-                      width: 16,
-                      height: 16,
-                      color: colors[index % colors.length]),
-                  const SizedBox(width: 8),
-                  Text(entry.key)
-                ]),
-              );
-            }),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Helper widget for legend items
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({
+    required this.color,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: color.withOpacity(0.5)),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[700],
+          ),
+        ),
+      ],
     );
   }
 }

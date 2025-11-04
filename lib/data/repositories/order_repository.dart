@@ -447,26 +447,23 @@ class OrderRepository {
       // Count query
       dynamic countQuery = _supabase.from('orders').select('id');
       if (startDate != null) {
-        countQuery = countQuery.gte('created_at', startDate.toIso8601String());
+        countQuery = countQuery.gte('created_at', startDate.toUtc().toIso8601String());
       }
       if (endDate != null) {
-        countQuery = countQuery.lte('created_at', endDate.toIso8601String());
+        countQuery = countQuery.lte('created_at', endDate.toUtc().toIso8601String());
       }
       final countResult = await countQuery;
       final totalCount = (countResult as List).length;
 
-      // Items query with pagination
-      dynamic itemsQuery = _supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+      // Items query with pagination (apply filters BEFORE order/range)
+      dynamic itemsQuery = _supabase.from('orders').select('*');
       if (startDate != null) {
-        itemsQuery = itemsQuery.gte('created_at', startDate.toIso8601String());
+        itemsQuery = itemsQuery.gte('created_at', startDate.toUtc().toIso8601String());
       }
       if (endDate != null) {
-        itemsQuery = itemsQuery.lte('created_at', endDate.toIso8601String());
+        itemsQuery = itemsQuery.lte('created_at', endDate.toUtc().toIso8601String());
       }
+      itemsQuery = itemsQuery.order('created_at', ascending: false).range(offset, offset + limit - 1);
       final itemsResponse = await itemsQuery;
 
       final orders = (itemsResponse as List)

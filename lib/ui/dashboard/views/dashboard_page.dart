@@ -7,6 +7,7 @@ import 'package:adminshahrayar/ui/orders/viewmodels/orders_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:adminshahrayar/ui/orders/views/address_details_dialog.dart';
 
 // Show Order Details Dialog
 void _showOrderDetails(BuildContext context, Order order) {
@@ -224,7 +225,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                 ),
                               ),
                               DataCell(Text(order.paymentToken)),
-                              DataCell(Text(order.addressId.toString())),
+                              DataCell(
+                                InkWell(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AddressDetailsDialog(addressId: order.addressId),
+                                    );
+                                  },
+                                  child: Text(
+                                    order.addressId.toString(),
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           );
                         }).toList(),
