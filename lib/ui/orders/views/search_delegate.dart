@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/ui/orders/views/order_status_badge.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/order_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 

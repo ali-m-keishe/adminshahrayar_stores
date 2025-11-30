@@ -1,23 +1,23 @@
+  import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/order.dart';
 import '../models/order_details.dart';
-import '../models/cart.dart';
-import '../models/menu_item.dart';
-import '../models/item_size.dart';
-import '../models/addon.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabase = Supabase.instance.client;
 
 class OrderRepository {
+  static const String _orderSelect =
+      '*, address:address_id (formatted_address, custom_label)';
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // Get all orders
   Future<List<Order>> getAllOrders() async {
     try {
       print('Attempting to fetch orders from Supabase...');
-      final List<dynamic> response = await _supabase.from('orders').select();
+      final List<dynamic> response =
+          await _supabase.from('orders').select(_orderSelect);
 
       print('Supabase fetch all orders: $response');
 
@@ -34,23 +34,26 @@ class OrderRepository {
   }
 
   Stream<List<Order>> subscribeToActiveOrders() {
-  return supabase
-      .from('orders')
-      .stream(primaryKey: ['id'])
-      .inFilter('status', ['pending', 'on the way']) // 🔹 فلترة هنا
-      .order('created_at', ascending: false)
-      .map((rows) => rows.map((row) => Order.fromJson(row)).toList());
-}
+    return supabase
+        .from('orders')
+        .stream(primaryKey: ['id'])
+        .inFilter('status', ['pending', 'on the way']) // 🔹 فلترة هنا
+        .order('created_at', ascending: false)
+        .map((rows) => rows.map((row) => Order.fromJson(row)).toList());
+  }
 
   // Get order by ID
   Future<Order?> getOrderById(int id) async {
     try {
       print('Attempting to fetch order $id from Supabase...');
-      final response =
-          await _supabase.from('orders').select().eq('id', id).single();
+      final response = await _supabase
+          .from('orders')
+          .select(_orderSelect)
+          .eq('id', id)
+          .single();
 
       print('Order response: $response');
-      return Order.fromJson(response as Map<String, dynamic>);
+      return Order.fromJson(Map<String, dynamic>.from(response));
     } catch (e) {
       print('Supabase error for order $id: $e');
       print('Falling back to mock data...');
@@ -75,6 +78,15 @@ class OrderRepository {
           status,
           payment_token,
           address_id,
+          address:address_id (
+            id,
+            formatted_address,
+            region:region_id (
+              id,
+              name,
+              delivery_fee
+            )
+          ),
           cart:cart_id (
             cart_id,
             created_at,
@@ -98,15 +110,114 @@ class OrderRepository {
           )
         ''').eq('id', orderId).single();
 
-      if (response == null) {
-        print('⚠️ No order found for ID: $orderId');
-        return null;
-      }
       print('Order details response: $response');
       // 🧠 تأكد إن الـ cart فعلاً Map مش List
       final cartData = response['cart'] is List
           ? (response['cart'] as List).first
           : response['cart'];
+
+      // استخرج بيانات الشحن (رسوم التوصيل من المنطقة)
+      double shippingFee = 0;
+      final addressData = response['address'];
+      if (addressData != null && addressData is Map) {
+        final regionData = addressData['region'];
+        if (regionData != null && regionData['delivery_fee'] != null) {
+          shippingFee = (regionData['delivery_fee'] as num).toDouble();
+        }
+      }
+
+      // Fetch user info (email and phone) from auth.users
+      // Query: select id, email, phone, created_at from auth.users
+      String? username;
+      String? phone;
+      try {
+        final userId = cartData['user_id'] as String?;
+        print('🔍 Fetching user info for userId: $userId');
+
+        if (userId != null && userId.toString().isNotEmpty) {
+          // Try using RPC function to query auth.users
+          try {
+            final userResponse = await supabase.rpc('get_user_info', params: {
+              'user_uuid': userId,
+            });
+
+            print('📦 User response type: ${userResponse.runtimeType}');
+            print('📦 User response: $userResponse');
+
+            if (userResponse != null) {
+              Map<String, dynamic>? userData;
+              
+              // Handle different response formats
+              if (userResponse is Map) {
+                userData = userResponse as Map<String, dynamic>;
+              } else if (userResponse is List && userResponse.isNotEmpty) {
+                userData = userResponse[0] as Map<String, dynamic>;
+              } else if (userResponse is String) {
+                // If it's a JSON string, parse it
+                try {
+                  userData = Map<String, dynamic>.from(
+                    jsonDecode(userResponse) as Map
+                  );
+                } catch (e) {
+                  print('⚠️ Failed to parse JSON string: $e');
+                }
+              }
+
+              if (userData != null && userData.isNotEmpty) {
+                // Get phone number (this should always be available)
+                phone = userData['phone'] as String?;
+                // Use email as username, or phone if email is null
+                username = userData['email'] as String?;
+                if (username == null || username.isEmpty) {
+                  // If email is null, use phone as username or a default
+                  username = phone != null ? 'User $phone' : 'User ${userId.substring(0, 8)}...';
+                }
+                print('✅ Found user from auth.users: email=$username, phone=$phone');
+              } else {
+                print('⚠️ User data is null or empty');
+              }
+            } else {
+              print('⚠️ No user data returned from get_user_info');
+            }
+          } catch (rpcError) {
+            print('⚠️ RPC get_user_info failed: $rpcError');
+            print('   Make sure you have run get_user_info_function.sql in Supabase SQL Editor');
+            print('   Falling back to get_all_users_basic...');
+            
+            // Fallback: Try existing RPC if available
+            try {
+              final allUsers = await supabase.rpc('get_all_users_basic');
+              if (allUsers != null && allUsers is List) {
+                print('📋 Fetched ${allUsers.length} users from get_all_users_basic');
+                for (var user in allUsers) {
+                  final map = user as Map<String, dynamic>;
+                  final responseUserId = map['id']?.toString() ?? '';
+                  final cartUserId = userId.toString();
+                  if (responseUserId == cartUserId) {
+                    phone = map['phone'] as String?;
+                    username = map['user_name'] as String? ?? map['email'] as String?;
+                    if (username == null || username.isEmpty) {
+                      username = phone != null ? 'User $phone' : 'User ${userId.substring(0, 8)}...';
+                    }
+                    print('✅ Found user from get_all_users_basic: username=$username, phone=$phone');
+                    break;
+                  }
+                }
+              }
+            } catch (fallbackError) {
+              print('⚠️ Fallback also failed: $fallbackError');
+            }
+          }
+        } else {
+          print('⚠️ userId is null or empty');
+        }
+      } catch (e, stackTrace) {
+        print('❌ Error fetching user info: $e');
+        print('Stack trace: $stackTrace');
+        // Continue without user info if query fails
+      }
+
+      print('📤 Final values - username: $username, phone: $phone');
 
       // 🔧 جهّز JSON متوافق مع OrderDetails.fromJson
       final jsonData = {
@@ -122,8 +233,9 @@ class OrderRepository {
           'cart_id': cartData['cart_id'],
           'created_at': cartData['created_at'],
           'status': cartData['status'],
-          'user_id': cartData['user_id'],
           'total_price': cartData['total_price'],
+          'username': username ?? '', // <-- username instead of user_id
+          'phone': phone ?? '', // <-- phone instead of user_id
         },
         'items': (cartData['cart_items'] as List? ?? []).map((item) {
           return {
@@ -141,7 +253,6 @@ class OrderRepository {
             },
             'menu_item': item['item'],
             'size': item['size'],
-            // 👇 addons من cart_item_addons مباشرة
             'addons': (item['cart_item_addons'] != null &&
                     item['cart_item_addons'] is List)
                 ? item['cart_item_addons']
@@ -155,6 +266,7 @@ class OrderRepository {
           };
         }).toList(),
         'total_price': cartData['total_price'],
+        'shipping_fee': shippingFee,
       };
 
       final orderDetails = OrderDetails.fromJson(jsonData);
@@ -172,7 +284,7 @@ class OrderRepository {
     try {
       final response = await _supabase
           .from('orders')
-          .select()
+          .select(_orderSelect)
           .eq('status', status)
           .order('created_at', ascending: false);
 
@@ -213,7 +325,7 @@ class OrderRepository {
     try {
       final response = await _supabase
           .from('orders')
-          .select()
+          .select(_orderSelect)
           .ilike('id', '%$query%')
           .order('created_at', ascending: false);
 
@@ -234,10 +346,10 @@ class OrderRepository {
       final response = await _supabase
           .from('orders')
           .insert(order.toJson())
-          .select()
+          .select(_orderSelect)
           .single();
 
-      return Order.fromJson(response as Map<String, dynamic>);
+      return Order.fromJson(Map<String, dynamic>.from(response));
     } catch (e) {
       // Fallback behavior if Supabase fails
       await Future.delayed(const Duration(milliseconds: 800));
@@ -259,10 +371,10 @@ class OrderRepository {
           .from('orders')
           .update({'status': status})
           .eq('id', orderId)
-          .select()
+          .select(_orderSelect)
           .single();
 
-      return Order.fromJson(response as Map<String, dynamic>);
+      return Order.fromJson(Map<String, dynamic>.from(response));
     } catch (e) {
       // Fallback behavior if Supabase fails
       await Future.delayed(const Duration(milliseconds: 500));
@@ -291,10 +403,10 @@ class OrderRepository {
           .from('orders')
           .update({'driver_id': driverId})
           .eq('id', orderId)
-          .select()
+          .select(_orderSelect)
           .single();
 
-      return Order.fromJson(response as Map<String, dynamic>);
+      return Order.fromJson(Map<String, dynamic>.from(response));
     } catch (e) {
       await Future.delayed(const Duration(milliseconds: 600));
       final order = await getOrderById(orderId);
@@ -371,7 +483,7 @@ class OrderRepository {
 
     final response = await supabase
         .from('orders')
-        .select('*')
+        .select(_orderSelect)
         .inFilter('status', ['pending', 'on the way']) // ✅ filters statuses
         .order('created_at', ascending: false);
 
@@ -423,7 +535,7 @@ class OrderRepository {
 
     final response = await supabase
         .from('orders')
-        .select('*')
+        .select(_orderSelect)
         .eq('status', 'on the way') // ✅ only "on the way" orders
         .order('created_at', ascending: false);
 
@@ -447,23 +559,29 @@ class OrderRepository {
       // Count query
       dynamic countQuery = _supabase.from('orders').select('id');
       if (startDate != null) {
-        countQuery = countQuery.gte('created_at', startDate.toUtc().toIso8601String());
+        countQuery =
+            countQuery.gte('created_at', startDate.toUtc().toIso8601String());
       }
       if (endDate != null) {
-        countQuery = countQuery.lte('created_at', endDate.toUtc().toIso8601String());
+        countQuery =
+            countQuery.lte('created_at', endDate.toUtc().toIso8601String());
       }
       final countResult = await countQuery;
       final totalCount = (countResult as List).length;
 
       // Items query with pagination (apply filters BEFORE order/range)
-      dynamic itemsQuery = _supabase.from('orders').select('*');
+      dynamic itemsQuery = _supabase.from('orders').select(_orderSelect);
       if (startDate != null) {
-        itemsQuery = itemsQuery.gte('created_at', startDate.toUtc().toIso8601String());
+        itemsQuery =
+            itemsQuery.gte('created_at', startDate.toUtc().toIso8601String());
       }
       if (endDate != null) {
-        itemsQuery = itemsQuery.lte('created_at', endDate.toUtc().toIso8601String());
+        itemsQuery =
+            itemsQuery.lte('created_at', endDate.toUtc().toIso8601String());
       }
-      itemsQuery = itemsQuery.order('created_at', ascending: false).range(offset, offset + limit - 1);
+      itemsQuery = itemsQuery
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
       final itemsResponse = await itemsQuery;
 
       final orders = (itemsResponse as List)
@@ -484,13 +602,15 @@ class OrderRepository {
       };
     }
   }
+
   /// 🔹 Fetch paginated active orders (pending and on the way)
   Future<Map<String, dynamic>> getPaginatedActiveOrders({
     required int limit,
     required int offset,
   }) async {
     try {
-      print('🔍 Fetching paginated active orders: limit=$limit, offset=$offset');
+      print(
+          '🔍 Fetching paginated active orders: limit=$limit, offset=$offset');
 
       // Build queries for count and items
       dynamic countQuery;
@@ -505,7 +625,7 @@ class OrderRepository {
       // Item query - get paginated active orders
       itemQuery = _supabase
           .from('orders')
-          .select('*')
+          .select(_orderSelect)
           .inFilter('status', ['pending', 'on the way'])
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);

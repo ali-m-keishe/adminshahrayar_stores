@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/data/models/promotion.dart';
+import 'package:adminshahrayar_stores/data/models/promotion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

@@ -1,13 +1,13 @@
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/main_screen.dart';
-import 'package:adminshahrayar/ui/dashboard/viewmodels/dashboard_viewmodel.dart';
-import 'package:adminshahrayar/ui/dashboard/views/order_details_dialog.dart';
-import 'package:adminshahrayar/ui/dashboard/views/stat_card.dart';
-import 'package:adminshahrayar/ui/orders/viewmodels/orders_notifier.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/main_screen.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/viewmodels/dashboard_viewmodel.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/views/order_details_dialog.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/views/stat_card.dart';
+import 'package:adminshahrayar_stores/ui/orders/viewmodels/orders_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:adminshahrayar/ui/orders/views/address_details_dialog.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/address_details_dialog.dart';
 
 // Show Order Details Dialog
 void _showOrderDetails(BuildContext context, Order order) {
@@ -227,16 +227,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               DataCell(Text(order.paymentToken)),
                               DataCell(
                                 InkWell(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AddressDetailsDialog(addressId: order.addressId),
-                                    );
-                                  },
+                                  onTap: order.addressId != null && order.addressId != 0
+                                      ? () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AddressDetailsDialog(addressId: order.addressId!),
+                                          );
+                                        }
+                                      : null,
                                   child: Text(
-                                    order.addressId.toString(),
+                                    order.addressId == null || order.addressId == 0
+                                        ? 'Address is empty or deleted'
+                                        : (order.addressFormatted ?? 'Address #${order.addressId}'),
                                     style: TextStyle(
-                                      color: Theme.of(context).primaryColor,
+                                      color: (order.addressId == null || order.addressId == 0)
+                                          ? Colors.grey
+                                          : Theme.of(context).primaryColor,
                                       fontWeight: FontWeight.bold,
                                       decoration: TextDecoration.underline,
                                     ),

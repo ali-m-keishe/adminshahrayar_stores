@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/data/models/menu_item.dart';
+import 'package:adminshahrayar_stores/data/models/menu_item.dart';
 import 'package:flutter/material.dart';
 
 // Note: This is a StatefulWidget because we need to manage the state of the form fields

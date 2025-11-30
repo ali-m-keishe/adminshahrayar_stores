@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/main_screen.dart';
-import 'package:adminshahrayar/theme.dart';
+import 'package:adminshahrayar_stores/main_screen.dart';
+import 'package:adminshahrayar_stores/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Import the Riverpod package
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,9 +10,9 @@ final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
-    url: 'https://ehcesxotispspagreksv.supabase.co',
+    url: 'https://qwqxrfseeartwzfmsdcg.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoY2VzeG90aXNwc3BhZ3Jla3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MjQyNDQsImV4cCI6MjA3MDUwMDI0NH0.RGPOSubglmc7ruhm_q6oQDGMA-VNUzg4eyqvo8MQ1FU',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3cXhyZnNlZWFydHd6Zm1zZGNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0OTgyNzksImV4cCI6MjA3ODA3NDI3OX0.24Q2TvBzdvexEhCzulK5mPG7AU2wqgyPb7zAR98geFM',
   );
 
   // 2. Wrap your root widget, SavorAdminApp, in a ProviderScope

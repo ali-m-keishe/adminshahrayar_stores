@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/data/models/driver.dart';
-import 'package:adminshahrayar/data/repositories/driver_repository.dart';
+import 'package:adminshahrayar_stores/data/models/driver.dart';
+import 'package:adminshahrayar_stores/data/repositories/driver_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DriversNotifier extends AsyncNotifier<List<Driver>> {

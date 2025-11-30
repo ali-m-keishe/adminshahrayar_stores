@@ -4,6 +4,8 @@ class Cart {
   final String userId;
   final double totalPrice;
   final DateTime createdAt;
+  final String? username;
+  final String? phone;
 
   Cart({
     required this.cartId,
@@ -11,16 +13,24 @@ class Cart {
     required this.userId,
     required this.totalPrice,
     required this.createdAt,
+    this.username,
+    this.phone,
   });
 
   // JSON serialization methods
   factory Cart.fromJson(Map<String, dynamic> json) {
+    final username = json['username'] ?? json['user_name'];
+    final phone = json['phone'];
+    print('📥 Cart.fromJson - username: $username, phone: $phone');
+    print('📥 Cart.fromJson - json keys: ${json.keys.toList()}');
     return Cart(
       cartId: json['cart_id'] ?? 0,
       status: json['status'] ?? '',
       userId: json['user_id'] ?? '',
       totalPrice: (json['total_price'] ?? 0).toDouble(),
       createdAt: DateTime.parse(json['created_at']),
+      username: username,
+      phone: phone,
     );
   }
 
@@ -31,6 +41,8 @@ class Cart {
       'user_id': userId,
       'total_price': totalPrice,
       'created_at': createdAt.toIso8601String(),
+      'username': username,
+      'phone': phone,
     };
   }
 }

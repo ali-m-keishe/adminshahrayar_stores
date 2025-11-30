@@ -1,6 +1,6 @@
-import 'package:adminshahrayar/data/models/staff_member.dart';
-import 'package:adminshahrayar/ui/staff/viewmodels/staff_notifier.dart';
-import 'package:adminshahrayar/ui/staff/views/add_edit_staff_dialog.dart';
+import 'package:adminshahrayar_stores/data/models/staff_member.dart';
+import 'package:adminshahrayar_stores/ui/staff/viewmodels/staff_notifier.dart';
+import 'package:adminshahrayar_stores/ui/staff/views/add_edit_staff_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

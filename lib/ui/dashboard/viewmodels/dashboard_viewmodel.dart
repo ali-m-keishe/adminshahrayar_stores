@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:adminshahrayar/data/models/dashboard_state.dart';
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/data/repositories/analytic_repository.dart';
-import 'package:adminshahrayar/data/repositories/customer_repository.dart';
-import 'package:adminshahrayar/data/repositories/order_repository.dart';
+import 'package:adminshahrayar_stores/data/models/dashboard_state.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/data/repositories/analytic_repository.dart';
+import 'package:adminshahrayar_stores/data/repositories/customer_repository.dart';
+import 'package:adminshahrayar_stores/data/repositories/order_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DashboardViewmodel extends AsyncNotifier<DashboardState> {

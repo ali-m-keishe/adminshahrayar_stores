@@ -1,13 +1,13 @@
-import 'package:adminshahrayar/ui/analytics/views/analytics_page.dart';
-import 'package:adminshahrayar/ui/customer/views/customers_page.dart';
-import 'package:adminshahrayar/ui/dashboard/views/dashboard_page.dart';
-import 'package:adminshahrayar/ui/delivery_driver/views/delivery_page.dart';
-import 'package:adminshahrayar/ui/menu/views/MenuInventoryPage.dart';
-import 'package:adminshahrayar/ui/orders/views/all_orders_page.dart';
-import 'package:adminshahrayar/ui/promotions/views/promotions_page.dart';
-import 'package:adminshahrayar/ui/settings/views/settings.dart';
-import 'package:adminshahrayar/ui/staff/views/staff_page.dart';
-import 'package:adminshahrayar/widget/sidebar.dart';
+import 'package:adminshahrayar_stores/ui/analytics/views/analytics_page.dart';
+import 'package:adminshahrayar_stores/ui/customer/views/customers_page.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/views/dashboard_page.dart';
+import 'package:adminshahrayar_stores/ui/delivery_driver/views/delivery_page.dart';
+import 'package:adminshahrayar_stores/ui/menu/views/MenuInventoryPage.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/all_orders_page.dart';
+import 'package:adminshahrayar_stores/ui/promotions/views/promotions_page.dart';
+import 'package:adminshahrayar_stores/ui/settings/views/settings.dart';
+import 'package:adminshahrayar_stores/ui/staff/views/staff_page.dart';
+import 'package:adminshahrayar_stores/widget/sidebar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

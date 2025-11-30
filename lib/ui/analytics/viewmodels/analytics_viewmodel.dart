@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:adminshahrayar/data/repositories/analytic_repository.dart';
-import 'package:adminshahrayar/data/repositories/customer_repository.dart';
+import 'package:adminshahrayar_stores/data/repositories/analytic_repository.dart';
+import 'package:adminshahrayar_stores/data/repositories/customer_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:adminshahrayar/data/models/analytics_state.dart';
-import 'package:adminshahrayar/data/models/cart.dart';
+import 'package:adminshahrayar_stores/data/models/analytics_state.dart';
+import 'package:adminshahrayar_stores/data/models/cart.dart';
 import 'package:intl/intl.dart'; // Add this to your pubspec.yaml if not already present
 
 final analyticsViewmodelProvider =

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'currency_management_dialog.dart';
+import 'region_management_dialog.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -64,6 +66,70 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 24),
 
+              // Currency Management Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Currency Management',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Manage your currencies. Edit the name and symbol for each currency.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) =>
+                                const CurrencyManagementDialog(),
+                          );
+                        },
+                        icon: const Icon(Icons.currency_exchange),
+                        label: const Text('Set Currency'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Region Management Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Region Management',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Manage your delivery regions. View, edit, and add new regions.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) =>
+                                const RegionManagementDialog(),
+                          );
+                        },
+                        icon: const Icon(Icons.location_on),
+                        label: const Text('Add Regions'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               // Pickup & Delivery Rules Card
               Card(
                 child: Padding(
@@ -90,16 +156,16 @@ class _SettingsPageState extends State<SettingsPage> {
                           itemCount: 4,
                           itemBuilder: (context, index) {
                             final fields = [
-                              _SettingsTextField(
+                              const _SettingsTextField(
                                   label: 'Min. Order for Delivery (\$)',
                                   initialValue: '15'),
-                              _SettingsTextField(
+                              const _SettingsTextField(
                                   label: 'Delivery Fee (\$)',
                                   initialValue: '5'),
-                              _SettingsTextField(
+                              const _SettingsTextField(
                                   label: 'Free Delivery Above (\$)',
                                   initialValue: '50'),
-                              _SettingsTextField(
+                              const _SettingsTextField(
                                   label: 'Avg. Prep Time (min)',
                                   initialValue: '20'),
                             ];

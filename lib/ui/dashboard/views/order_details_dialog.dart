@@ -1,6 +1,6 @@
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/data/models/order_details.dart';
-import 'package:adminshahrayar/data/repositories/order_repository.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/data/models/order_details.dart';
+import 'package:adminshahrayar_stores/data/repositories/order_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -101,8 +101,11 @@ class OrderDetailsDialog extends ConsumerWidget {
                       timeago.format(orderDetails.order.createdAt), textTheme),
                   _buildDetailRow('Payment Token:',
                       orderDetails.order.paymentToken, textTheme),
-                  _buildDetailRow('Address ID:',
-                      orderDetails.order.addressId.toString(), textTheme),
+                  _buildDetailRow('Address:',
+                      orderDetails.order.addressId == null || orderDetails.order.addressId == 0
+                          ? 'Address is empty or deleted'
+                          : (orderDetails.order.addressFormatted ?? 'Address #${orderDetails.order.addressId}'),
+                      textTheme),
                 ],
               ),
             ),
@@ -124,12 +127,39 @@ class OrderDetailsDialog extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _buildDetailRow(
                       'Cart Status:', orderDetails.cart.status, textTheme),
-                  _buildDetailRow(
-                      'User ID:', orderDetails.cart.userId, textTheme),
+                  // Debug: Print cart values
+                  Builder(
+                    builder: (context) {
+                      print('🔍 UI Debug - username: ${orderDetails.username}');
+                      print('🔍 UI Debug - phone: ${orderDetails.phone}');
+                      print('🔍 UI Debug - userId: ${orderDetails.cart.userId}');
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  if (orderDetails.username != null || orderDetails.phone != null) ...[
+                    if (orderDetails.username != null)
+                      _buildDetailRow(
+                          'Username:', orderDetails.username!, textTheme),
+                    if (orderDetails.phone != null)
+                      _buildDetailRow(
+                          'Phone:', orderDetails.phone!, textTheme),
+                  ] else
+                    _buildDetailRow(
+                        'User ID:', orderDetails.cart.userId, textTheme),
                   _buildDetailRow(
                       'Total Price:',
                       '\$${orderDetails.totalPrice.toStringAsFixed(2)}',
                       textTheme),
+                  _buildDetailRow(
+                      'Shipping Fee:',
+                      '\$${orderDetails.shippingFee.toStringAsFixed(2)}',
+                      textTheme),
+                  Divider(color: Colors.white.withOpacity(0.1)),
+                  _buildDetailRow(
+                    'Sub Total:',
+                    '\$${orderDetails.subTotal.toStringAsFixed(2)}',
+                    textTheme, 
+                  ),
                 ],
               ),
             ),
@@ -250,7 +280,8 @@ class OrderDetailsDialog extends ConsumerWidget {
     );
   }
 
-  Widget _buildDetailRow(String title, String value, TextTheme textTheme) {
+  Widget _buildDetailRow(String title, String value, TextTheme textTheme,
+      {TextStyle? valueStyle}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -263,7 +294,7 @@ class OrderDetailsDialog extends ConsumerWidget {
           Flexible(
             child: Text(
               value,
-              style: textTheme.bodyLarge,
+              style: valueStyle ?? textTheme.bodyLarge,
               textAlign: TextAlign.end,
             ),
           ),

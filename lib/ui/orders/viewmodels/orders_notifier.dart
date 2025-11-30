@@ -1,6 +1,6 @@
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/data/repositories/order_repository.dart';
-import 'package:adminshahrayar/ui/dashboard/viewmodels/dashboard_viewmodel.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/data/repositories/order_repository.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/viewmodels/dashboard_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
 

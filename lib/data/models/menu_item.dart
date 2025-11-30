@@ -1,7 +1,7 @@
 // lib/data/models/menu_item.dart
 
-import 'package:adminshahrayar/data/models/addon.dart';
-import 'package:adminshahrayar/data/models/item_size.dart';
+import 'package:adminshahrayar_stores/data/models/addon.dart';
+import 'package:adminshahrayar_stores/data/models/item_size.dart';
 
 class MenuItem {
   final int id;

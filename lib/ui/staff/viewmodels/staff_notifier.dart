@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/data/models/staff_member.dart';
-import 'package:adminshahrayar/data/repositories/staff_repository.dart';
+import 'package:adminshahrayar_stores/data/models/staff_member.dart';
+import 'package:adminshahrayar_stores/data/repositories/staff_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart'; // We'll use a package to generate unique IDs
 

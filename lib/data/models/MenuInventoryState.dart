@@ -1,7 +1,7 @@
 
-import 'package:adminshahrayar/data/models/category.dart';
-import 'package:adminshahrayar/data/models/menu_item.dart';
-import 'package:adminshahrayar/data/models/addon.dart';
+import 'package:adminshahrayar_stores/data/models/category.dart';
+import 'package:adminshahrayar_stores/data/models/menu_item.dart';
+import 'package:adminshahrayar_stores/data/models/addon.dart';
 
 class Menuinventorystate {
  late final List<Category> categories;

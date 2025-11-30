@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/data/models/promotion.dart';
-import 'package:adminshahrayar/data/repositories/promotion_repository.dart';
+import 'package:adminshahrayar_stores/data/models/promotion.dart';
+import 'package:adminshahrayar_stores/data/repositories/promotion_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PromotionsNotifier extends AsyncNotifier<List<Promotion>> {

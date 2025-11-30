@@ -1,4 +1,4 @@
-name: adminshahrayar
+name: adminshahrayar_stores
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -13,12 +13,14 @@ dependencies:
   
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
-  fl_chart: ^0.68.0 
+  fl_chart: ^0.68.0
   flutter_riverpod: ^2.5.1
   audioplayers: ^6.0.0 
   uuid: ^4.4.0
   timeago: ^3.6.1
   supabase_flutter: ^2.5.6
+  image_picker: ^1.0.7
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:

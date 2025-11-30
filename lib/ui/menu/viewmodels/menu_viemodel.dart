@@ -1,12 +1,15 @@
 // lib/features/menu/menu_viewmodel.dart
 
 import 'dart:async';
-import 'package:adminshahrayar/data/models/MenuInventoryState.dart';
-import 'package:adminshahrayar/data/models/category.dart';
-import 'package:adminshahrayar/data/models/menu_item.dart';
-import 'package:adminshahrayar/data/models/addon.dart';
+import 'dart:typed_data';
+import 'package:adminshahrayar_stores/data/models/MenuInventoryState.dart';
+import 'package:adminshahrayar_stores/data/models/category.dart';
+import 'package:adminshahrayar_stores/data/models/menu_item.dart';
+import 'package:adminshahrayar_stores/data/models/addon.dart';
+import 'package:adminshahrayar_stores/data/models/item_size.dart';
+import 'package:adminshahrayar_stores/data/models/storage_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:adminshahrayar/data/repositories/menu_repository.dart';
+import 'package:adminshahrayar_stores/data/repositories/menu_repository.dart';
 
 class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
   late final MenuRepository _menuRepository;
@@ -135,21 +138,56 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     state = await AsyncValue.guard(() async => await _loadMenuData());
   }
 
-  Future<void> addMenuItem(MenuItem item) async {
+  /// 🔹 Add Menu Item (storage URL only)
+  Future<void> addMenuItem({
+    required String name,
+    required String description,
+    required double price,
+    required int categoryId,
+    String? imageUrl,
+    List<Addon>? addons,
+    List<ItemSize>? sizes,
+  }) async {
     try {
-      await _menuRepository.addMenuItem(item);
-      // Note: UI should trigger pagination refresh after this
+      await _menuRepository.addMenuItem(
+        name: name,
+        description: description,
+        price: price,
+        categoryId: categoryId,
+        imageUrl: imageUrl,
+        addons: addons,
+        sizes: sizes,
+      );
     } catch (e) {
       print("❌ Error adding menu item: $e");
       rethrow;
     }
   }
 
-  // 🔹 Edit item
-  Future<void> editMenuItem(MenuItem item) async {
+  /// 🔹 Edit Menu Item (storage URL only)
+  Future<void> editMenuItem({
+    required int itemId,
+    required String name,
+    required String description,
+    required double price,
+    required int categoryId,
+    String? imageUrl,
+    String? originalImageUrl,
+    List<Addon>? addons,
+    List<ItemSize>? sizes,
+  }) async {
     try {
-      await _menuRepository.updateMenuItem(item);
-      // Note: UI should trigger pagination refresh after this
+      await _menuRepository.updateMenuItem(
+        itemId: itemId,
+        name: name,
+        description: description,
+        price: price,
+        categoryId: categoryId,
+        existingImageUrl: originalImageUrl,
+        newImageUrl: imageUrl,
+        addons: addons,
+        sizes: sizes,
+      );
     } catch (e) {
       print("❌ Error editing menu item: $e");
       rethrow;
@@ -184,6 +222,87 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
       await refreshCategoriesAndAddons(); // refresh addons only
     } catch (e) {
       print("❌ Error deleting addon: $e");
+    }
+  }
+
+  // ========== Storage Category Methods ==========
+
+  /// 🔹 Fetch storage categories (folders from Supabase storage)
+  Future<List<String>> fetchStorageCategories() async {
+    try {
+      return await _menuRepository.fetchStorageCategories();
+    } catch (e) {
+      print("❌ Error fetching storage categories: $e");
+      rethrow;
+    }
+  }
+
+  // Add this method to MenuViewmodel class
+  Future<bool> deleteStorageImage({required String imagePath}) async {
+    try {
+      print('🗑️ Deleting image from storage via ViewModel');
+      return await _menuRepository.deleteImageFromStorage(imagePath: imagePath);
+    } catch (e) {
+      print('❌ Error in ViewModel deleteStorageImage: $e');
+      return false;
+    }
+  }
+
+  /// 🔹 Create a new storage category (folder)
+  Future<void> createStorageCategory(String categoryName) async {
+    try {
+      await _menuRepository.createStorageCategory(categoryName);
+    } catch (e) {
+      print("❌ Error creating storage category: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Delete a storage category (folder and all its contents)
+  Future<void> deleteStorageCategory(String categoryName) async {
+    try {
+      await _menuRepository.deleteStorageCategory(categoryName);
+    } catch (e) {
+      print("❌ Error deleting storage category: $e");
+      rethrow;
+    }
+  }
+
+  // ========== Storage Image Methods ==========
+
+  /// 🔹 Fetch images from a specific storage category
+  Future<StorageImagesPage> fetchCategoryImages({
+    required String category,
+    required int limit,
+    required int offset,
+  }) async {
+    try {
+      return await _menuRepository.fetchCategoryImages(
+        category: category,
+        limit: limit,
+        offset: offset,
+      );
+    } catch (e) {
+      print("❌ Error fetching category images: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Upload image to a specific storage category
+  Future<String> uploadImageToCategory({
+    required Uint8List bytes,
+    required String originalFileName,
+    required String category,
+  }) async {
+    try {
+      return await _menuRepository.uploadImageToCategory(
+        bytes: bytes,
+        originalFileName: originalFileName,
+        category: category,
+      );
+    } catch (e) {
+      print("❌ Error uploading image to category: $e");
+      rethrow;
     }
   }
 }

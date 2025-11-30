@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/data/models/menu_item.dart';
+import 'package:adminshahrayar_stores/data/models/menu_item.dart';
 
 class Promotion {
   final int id; // 'bigint' in Supabase maps to int in Dart

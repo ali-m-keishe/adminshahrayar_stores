@@ -9,13 +9,24 @@ class OrderDetails {
   final Cart cart;
   final List<OrderItemDetails> items;
   final double totalPrice;
+  final double shippingFee;
 
   OrderDetails({
     required this.order,
     required this.cart,
     required this.items,
     required this.totalPrice,
+    required this.shippingFee,
   });
+
+  /// Total amount customer pays (items total + shipping fee)
+  double get subTotal => totalPrice + shippingFee;
+
+  /// Convenience getter for username from cart
+  String? get username => cart.username;
+
+  /// Convenience getter for phone from cart
+  String? get phone => cart.phone;
 
   factory OrderDetails.fromJson(Map<String, dynamic> json) {
     return OrderDetails(
@@ -25,6 +36,7 @@ class OrderDetails {
           .map((item) => OrderItemDetails.fromJson(item))
           .toList(),
       totalPrice: (json['total_price'] ?? 0).toDouble(),
+      shippingFee: (json['shipping_fee'] ?? 0).toDouble(),
     );
   }
 
@@ -34,6 +46,7 @@ class OrderDetails {
       'cart': cart.toJson(),
       'items': items.map((item) => item.toJson()).toList(),
       'total_price': totalPrice,
+      'shipping_fee': shippingFee,
     };
   }
 }

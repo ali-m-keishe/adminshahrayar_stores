@@ -37,27 +37,38 @@ class Order {
   final int cartId;
   final String status;
   final String paymentToken;
-  final int addressId;
+  final int? addressId;
   final DateTime createdAt;
+  final String? addressFormatted;
 
   Order({
     required this.id,
     required this.cartId,
     required this.status,
     required this.paymentToken,
-    required this.addressId,
+    this.addressId,
     required this.createdAt,
+    this.addressFormatted,
   });
 
   // JSON serialization methods
   factory Order.fromJson(Map<String, dynamic> json) {
+    String? formattedAddress;
+    if (json['address'] != null && json['address'] is Map) {
+      final map = json['address'] as Map;
+      formattedAddress = (map['formatted_address'] ?? map['custom_label']) as String?;
+    } else if (json['address_formatted'] != null) {
+      formattedAddress = json['address_formatted'] as String?;
+    }
+
     return Order(
       id: json['id'] ?? 0,
       cartId: json['cart_id'] ?? 0,
       status: json['status'] ?? '',
       paymentToken: json['payment_token'] ?? '',
-      addressId: json['address_id'] ?? 0,
+      addressId: json['address_id'] as int?,
       createdAt: DateTime.parse(json['created_at']),
+      addressFormatted: formattedAddress,
     );
   }
 
@@ -67,8 +78,9 @@ class Order {
       'cart_id': cartId,
       'status': status,
       'payment_token': paymentToken,
-      'address_id': addressId,
+      if (addressId != null) 'address_id': addressId,
       'created_at': createdAt.toIso8601String(),
+      if (addressFormatted != null) 'address_formatted': addressFormatted,
     };
   }
 }
@@ -82,6 +94,7 @@ final List<Order> mockOrders = [
     paymentToken: 'tok_123456789',
     addressId: 1,
     createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    addressFormatted: '123 Main St',
   ),
   Order(
     id: 2,

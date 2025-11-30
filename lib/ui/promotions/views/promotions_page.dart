@@ -1,6 +1,6 @@
-import 'package:adminshahrayar/data/models/promotion.dart';
-import 'package:adminshahrayar/ui/promotions/viewmodels/promotions_notifier.dart';
-import 'package:adminshahrayar/ui/promotions/views/add_edit_promotion_dialog.dart';
+import 'package:adminshahrayar_stores/data/models/promotion.dart';
+import 'package:adminshahrayar_stores/ui/promotions/viewmodels/promotions_notifier.dart';
+import 'package:adminshahrayar_stores/ui/promotions/views/add_edit_promotion_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';

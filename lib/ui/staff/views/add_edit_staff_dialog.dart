@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/data/models/staff_member.dart';
+import 'package:adminshahrayar_stores/data/models/staff_member.dart';
 import 'package:flutter/material.dart';
 
 class AddEditStaffDialog extends StatefulWidget {

@@ -1,7 +1,7 @@
-import 'package:adminshahrayar/data/models/driver.dart';
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/ui/delivery_driver/viewmodels/drivers_notifier.dart';
-import 'package:adminshahrayar/ui/orders/viewmodels/orders_notifier.dart';
+import 'package:adminshahrayar_stores/data/models/driver.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/ui/delivery_driver/viewmodels/drivers_notifier.dart';
+import 'package:adminshahrayar_stores/ui/orders/viewmodels/orders_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

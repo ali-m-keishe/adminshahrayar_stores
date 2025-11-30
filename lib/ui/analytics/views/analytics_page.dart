@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/ui/analytics/viewmodels/analytics_viewmodel.dart';
-import 'package:adminshahrayar/ui/dashboard/views/stat_card.dart';
+import 'package:adminshahrayar_stores/ui/analytics/viewmodels/analytics_viewmodel.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/views/stat_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

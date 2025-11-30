@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/data/models/order.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
 import 'package:flutter/material.dart';
 
 class OrderSearchDelegate extends SearchDelegate<Order?> {

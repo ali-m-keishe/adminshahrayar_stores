@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/main.dart';
+import 'package:adminshahrayar_stores/main.dart';
 import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {

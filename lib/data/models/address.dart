@@ -1,60 +1,42 @@
 class Address {
   final int id;
+  final String formattedAddress;
   final String customLabel;
-  final String blockNumber;
-  final String entrance;
-  final String floor;
-  final String apartment;
   final double latitude;
   final double longitude;
-  final String formattedAddress;
   final String userId;
-  final DateTime createdAt;
+  final String regionName; // Only region name shown
 
   Address({
     required this.id,
+    required this.formattedAddress,
     required this.customLabel,
-    required this.blockNumber,
-    required this.entrance,
-    required this.floor,
-    required this.apartment,
     required this.latitude,
     required this.longitude,
-    required this.formattedAddress,
     required this.userId,
-    required this.createdAt,
+    required this.regionName,
   });
 
-  // JSON serialization methods
   factory Address.fromJson(Map<String, dynamic> json) {
     return Address(
       id: json['id'] ?? 0,
-      customLabel: json['custom_label'] ?? '',
-      blockNumber: json['block_number'] ?? '',
-      entrance: json['entrance'] ?? '',
-      floor: json['floor'] ?? '',
-      apartment: json['apartment'] ?? '',
-      latitude: (json['latitude'] ?? 0).toDouble(),
-      longitude: (json['longitude'] ?? 0).toDouble(),
       formattedAddress: json['formatted_address'] ?? '',
+      customLabel: json['custom_label'] ?? '',
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       userId: json['user_id'] ?? '',
-      createdAt: DateTime.parse(json['created_at']),
+      regionName: json['regions']?['name'] ?? '—', // only the region name
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'formatted_address': formattedAddress,
       'custom_label': customLabel,
-      'block_number': blockNumber,
-      'entrance': entrance,
-      'floor': floor,
-      'apartment': apartment,
       'latitude': latitude,
       'longitude': longitude,
-      'formatted_address': formattedAddress,
       'user_id': userId,
-      'created_at': createdAt.toIso8601String(),
+      // No regionName here because we don't insert/edit names, only IDs
     };
   }
 }

@@ -1,9 +1,9 @@
-import 'package:adminshahrayar/data/models/order.dart';
-import 'package:adminshahrayar/ui/dashboard/views/order_details_dialog.dart';
-import 'package:adminshahrayar/ui/orders/viewmodels/orders_notifier.dart';
-import 'package:adminshahrayar/ui/orders/views/order_search_delegate.dart';
-import 'package:adminshahrayar/ui/orders/views/address_details_dialog.dart';
-import 'package:adminshahrayar/ui/orders/views/order_status_badge.dart';
+import 'package:adminshahrayar_stores/data/models/order.dart';
+import 'package:adminshahrayar_stores/ui/dashboard/views/order_details_dialog.dart';
+import 'package:adminshahrayar_stores/ui/orders/viewmodels/orders_notifier.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/order_search_delegate.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/address_details_dialog.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/order_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -133,13 +133,21 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
                         ),
                         DataCell(
                           InkWell(
-                            onTap: () => _showAddressDetails(context, order.addressId),
+                            onTap: order.addressId != null && order.addressId != 0
+                                ? () => _showAddressDetails(context, order.addressId!)
+                                : null,
                             child: Text(
-                              order.addressId.toString(),
+                              order.addressId == null || order.addressId == 0
+                                  ? 'Address is empty or deleted'
+                                  : (order.addressFormatted ?? 'Address #${order.addressId}'),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
-                                decoration: TextDecoration.underline,
+                                color: (order.addressId == null || order.addressId == 0)
+                                    ? Colors.grey
+                                    : Theme.of(context).primaryColor,
+                                decoration: (order.addressId == null || order.addressId == 0)
+                                    ? TextDecoration.none
+                                    : TextDecoration.underline,
                               ),
                             ),
                           ),
@@ -177,7 +185,7 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
     );
   }
 
-  void _showAddressDetails(BuildContext context, int addressId) {
+  void _showAddressDetails(BuildContext context, int? addressId) {
     showDialog(
       context: context,
       builder: (context) => AddressDetailsDialog(addressId: addressId),

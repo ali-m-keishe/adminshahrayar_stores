@@ -1,5 +1,5 @@
-import 'package:adminshahrayar/data/models/customer_review.dart';
-import 'package:adminshahrayar/data/repositories/customer_repository.dart';
+import 'package:adminshahrayar_stores/data/models/customer_review.dart';
+import 'package:adminshahrayar_stores/data/repositories/customer_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // The state class is unchanged

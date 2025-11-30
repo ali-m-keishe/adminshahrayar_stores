@@ -1,4 +1,4 @@
-import 'package:adminshahrayar/ui/customer/viewmodels/customers_notifier.dart';
+import 'package:adminshahrayar_stores/ui/customer/viewmodels/customers_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
