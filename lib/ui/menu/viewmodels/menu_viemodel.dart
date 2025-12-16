@@ -237,17 +237,6 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     }
   }
 
-  // Add this method to MenuViewmodel class
-  Future<bool> deleteStorageImage({required String imagePath}) async {
-    try {
-      print('🗑️ Deleting image from storage via ViewModel');
-      return await _menuRepository.deleteImageFromStorage(imagePath: imagePath);
-    } catch (e) {
-      print('❌ Error in ViewModel deleteStorageImage: $e');
-      return false;
-    }
-  }
-
   /// 🔹 Create a new storage category (folder)
   Future<void> createStorageCategory(String categoryName) async {
     try {

@@ -105,6 +105,12 @@ class Sidebar extends StatelessWidget {
                   isSelected: selectedIndex == 7,
                   onTap: () => onItemTapped(7),
                 ),
+                _SidebarLink(
+                  text: 'Send Notification',
+                  icon: Icons.notifications_active_outlined,
+                  isSelected: selectedIndex == 9,
+                  onTap: () => onItemTapped(9),
+                ),
               ],
             ),
           ),

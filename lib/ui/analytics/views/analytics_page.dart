@@ -447,9 +447,10 @@ class _RevenueChart extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Find the maximum value for better Y-axis scaling
+    // Ensure maxY is never 0 to avoid horizontalInterval being 0
     final maxY = revenueData.isEmpty
         ? 100.0
-        : revenueData.reduce((a, b) => a > b ? a : b) * 1.2;
+        : (revenueData.reduce((a, b) => a > b ? a : b) * 1.2).clamp(1.0, double.infinity);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -471,7 +472,7 @@ class _RevenueChart extends StatelessWidget {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: maxY / 5,
+                    horizontalInterval: (maxY / 5).clamp(1.0, double.infinity),
                     getDrawingHorizontalLine: (value) {
                       return FlLine(
                         color: Colors.grey.withOpacity(0.1),
@@ -499,7 +500,7 @@ class _RevenueChart extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        interval: maxY / 5,
+                        interval: (maxY / 5).clamp(1.0, double.infinity),
                         getTitlesWidget: (value, meta) {
                           return Text(
                             '\$${value.toInt()}',

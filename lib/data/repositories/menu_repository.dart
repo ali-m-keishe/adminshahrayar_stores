@@ -8,6 +8,7 @@ import '../models/menu_item.dart';
 import '../models/addon.dart';
 import '../models/item_size.dart';
 import '../models/storage_image.dart';
+// ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
 class MenuRepository {
@@ -130,50 +131,34 @@ class MenuRepository {
       final sanitizedName = categoryName
           .replaceAll(' ', '_')
           .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '');
-
+      
       if (sanitizedName.isEmpty) {
         throw Exception('Invalid category name');
       }
 
       // Categories are stored at uploads/uploads/[category_name]
       final categoryPath = 'uploads/uploads/$sanitizedName';
-
+      
       print('📁 Creating category folder: $categoryPath');
 
       // In Supabase Storage, folders are created implicitly when you upload a file
       // We'll create a placeholder .keep file to establish the folder
       final placeholderPath = '$categoryPath/.keep';
       final placeholderContent = Uint8List.fromList('category'.codeUnits);
-
+      
       await _supabase.storage.from(_bucketName).uploadBinary(
-            placeholderPath,
-            placeholderContent,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: true,
-            ),
-          );
+        placeholderPath,
+        placeholderContent,
+        fileOptions: const FileOptions(
+          cacheControl: '3600',
+          upsert: true,
+        ),
+      );
 
       print('✅ Category created successfully: $sanitizedName');
     } catch (e) {
       print('❌ Error creating storage category: $e');
       rethrow;
-    }
-  }
-
-  // Add this method to MenuRepository class
-  Future<bool> deleteImageFromStorage({required String imagePath}) async {
-    try {
-      print('🗑️ Deleting image from path: $imagePath');
-
-      // Remove the image from storage
-      await _supabase.storage.from(_bucketName).remove([imagePath]);
-
-      print('✅ Image deleted successfully from storage');
-      return true;
-    } catch (e) {
-      print('❌ Error deleting image from storage: $e');
-      return false;
     }
   }
 
@@ -184,18 +169,19 @@ class MenuRepository {
       final sanitizedName = categoryName
           .replaceAll(' ', '_')
           .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '');
-
+      
       if (sanitizedName.isEmpty) {
         throw Exception('Invalid category name');
       }
 
       final categoryPath = 'uploads/uploads/$sanitizedName';
-
+      
       print('🗑️ Deleting category: $categoryPath');
 
       // List all files in the category folder
-      final objects =
-          await _supabase.storage.from(_bucketName).list(path: categoryPath);
+      final objects = await _supabase.storage
+          .from(_bucketName)
+          .list(path: categoryPath);
 
       // Delete all files in the category
       final filesToDelete = <String>[];
@@ -301,8 +287,7 @@ class MenuRepository {
         }
       }
 
-      print(
-          '✅ Returning ${images.length} images for $category (total: $totalImages)');
+      print('✅ Returning ${images.length} images for $category (total: $totalImages)');
 
       return StorageImagesPage(
         images: images,
@@ -409,19 +394,45 @@ class MenuRepository {
   Future<List<Category>> getAllCategories() async {
     try {
       print('Fetching all categories from Supabase...');
+      
+      // Check authentication status for debugging
+      final currentUser = _supabase.auth.currentUser;
+      print('🔐 Current auth status: ${currentUser != null ? "Authenticated (${currentUser.id})" : "Not authenticated"}');
+      
       final response = await _supabase
           .from('categories')
           .select('*')
           .order('created_at', ascending: false);
 
       print('✅ Categories fetched: ${response.length}');
+      
+      if (response.isEmpty) {
+        print('⚠️ No categories found in database.');
+        print('💡 The categories table exists but is empty.');
+        print('💡 Solution: Create categories using the "Add Category" feature in your app.');
+        print('💡 Or insert categories directly in Supabase dashboard: Table Editor → categories → Insert');
+      } else {
+        print('📋 Category names: ${(response as List).map((c) => c['name'] ?? 'unnamed').join(', ')}');
+      }
 
       return (response as List)
           .map((json) => Category.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e, stack) {
       print('❌ Error fetching categories: $e');
-      print(stack);
+      print('Stack trace: $stack');
+      
+      // Check for specific error types
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('relation') && errorStr.contains('does not exist')) {
+        print('🚨 ERROR: The "categories" table does not exist in your Supabase database!');
+        print('💡 Solution: Run the SQL migration in "create_categories_table.sql" in your Supabase SQL Editor.');
+      } else if (errorStr.contains('permission') || errorStr.contains('policy') || errorStr.contains('row-level security')) {
+        print('🚨 ERROR: Row Level Security (RLS) is blocking access to categories.');
+        print('💡 Solution: Check your RLS policies in Supabase dashboard → Authentication → Policies');
+        print('💡 Ensure there is a policy allowing SELECT operations on the categories table.');
+      }
+      
       return [];
     }
   }

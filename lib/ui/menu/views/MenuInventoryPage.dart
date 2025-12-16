@@ -113,8 +113,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                           item.image,
                           height: 300,
                           width: 300,
-                          fit: BoxFit
-                              .contain, // Fit entire image without cropping
+                          fit: BoxFit.contain, // Fit entire image without cropping
                           errorBuilder: (context, error, stackTrace) =>
                               const Icon(Icons.image_not_supported, size: 48),
                         ),
@@ -479,7 +478,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final descController = TextEditingController(text: item?.description ?? '');
     final priceController =
         TextEditingController(text: item?.price.toString() ?? '');
-
+    
     // Get categories from the menu state
     final menuState = ref.read(menuViewModelProvider);
     final categories = menuState.value?.categories ?? [];
@@ -498,31 +497,29 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     if (isEditing && item != null) {
       initialSelectedCategory = categories.firstWhere(
         (cat) => cat.id == item.categoryId,
-        orElse: () => categories.isNotEmpty
-            ? categories.first
-            : Category(
-                id: 0,
-                name: '',
-                image: '',
-                createdAt: DateTime.now(),
-              ),
+        orElse: () => categories.isNotEmpty ? categories.first : Category(
+          id: 0,
+          name: '',
+          image: '',
+          createdAt: DateTime.now(),
+        ),
       );
     } else if (categories.isNotEmpty) {
       initialSelectedCategory = categories.first;
     }
-
+    
     // Use a mutable variable that can be updated in the StatefulBuilder
     Category? selectedCategory = initialSelectedCategory;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(isEditing ? 'Edit Item' : 'Add Item',
-            style: const TextStyle(color: Colors.white)),
-        content: StatefulBuilder(
-          builder: (context, setState) => SingleChildScrollView(
+          backgroundColor: Colors.grey.shade900,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text(isEditing ? 'Edit Item' : 'Add Item',
+              style: const TextStyle(color: Colors.white)),
+          content: StatefulBuilder(
+            builder: (context, setState) => SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
@@ -574,11 +571,9 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                     workingImageUrl!,
                                     height: 400,
                                     width: 400,
-                                    fit: BoxFit
-                                        .contain, // Fit entire image without cropping
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Center(
+                                    fit: BoxFit.contain, // Fit entire image without cropping
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Center(
                                       child: Icon(Icons.broken_image,
                                           size: 48, color: Colors.white70),
                                     ),
@@ -841,10 +836,10 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   final name = nameController.text.trim();
                   final description = descController.text.trim();
                   final price = double.tryParse(priceController.text) ?? 0;
-
+                  
                   // Get category ID from selected category
                   final categoryId = selectedCategory?.id ?? 0;
-
+                  
                   if (categoryId == 0) {
                     if (context.mounted) {
                       Navigator.pop(context); // Close loading
@@ -996,7 +991,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
               required Future<void> Function() loadCategories,
             }) async {
               final categoryNameController = TextEditingController();
-
+              
               final result = await showDialog<bool>(
                 context: context,
                 builder: (BuildContext dialogContext) {
@@ -1025,8 +1020,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderSide:
-                                  const BorderSide(color: Colors.blueAccent),
+                              borderSide: const BorderSide(color: Colors.blueAccent),
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
@@ -1057,10 +1051,9 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                 },
               );
 
-              if (result == true &&
-                  categoryNameController.text.trim().isNotEmpty) {
+              if (result == true && categoryNameController.text.trim().isNotEmpty) {
                 final categoryName = categoryNameController.text.trim();
-
+                
                 setState(() {
                   isLoading = true;
                   errorMessage = null;
@@ -1070,12 +1063,11 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   await viewModel.createStorageCategory(categoryName);
                   // Reload categories
                   await loadCategories();
-
+                  
                   if (context.mounted) {
                     ScaffoldMessenger.of(parentContext).showSnackBar(
                       SnackBar(
-                        content: Text(
-                            'Category "$categoryName" created successfully!'),
+                        content: Text('Category "$categoryName" created successfully!'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -1085,7 +1077,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                     isLoading = false;
                     errorMessage = 'Failed to create category: $e';
                   });
-
+                  
                   if (context.mounted) {
                     ScaffoldMessenger.of(parentContext).showSnackBar(
                       SnackBar(
@@ -1112,7 +1104,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
               required List<String> categories,
             }) async {
               String? selectedCategoryToDelete;
-
+              
               final result = await showDialog<bool>(
                 context: context,
                 builder: (BuildContext dialogContext) {
@@ -1150,16 +1142,13 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                   style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     labelText: 'Category',
-                                    labelStyle:
-                                        const TextStyle(color: Colors.white70),
+                                    labelStyle: const TextStyle(color: Colors.white70),
                                     enabledBorder: OutlineInputBorder(
-                                      borderSide:
-                                          const BorderSide(color: Colors.grey),
+                                      borderSide: const BorderSide(color: Colors.grey),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderSide: const BorderSide(
-                                          color: Colors.redAccent),
+                                      borderSide: const BorderSide(color: Colors.redAccent),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
@@ -1198,8 +1187,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
+                            onPressed: () => Navigator.pop(dialogContext, false),
                             child: const Text(
                               'Cancel',
                               style: TextStyle(color: Colors.white70),
@@ -1228,11 +1216,10 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                 });
 
                 try {
-                  await viewModel
-                      .deleteStorageCategory(selectedCategoryToDelete!);
+                  await viewModel.deleteStorageCategory(selectedCategoryToDelete!);
                   // Reload categories
                   await loadCategories();
-
+                  
                   // If we were viewing the deleted category, go back to category list
                   if (selectedCategory == selectedCategoryToDelete) {
                     setState(() {
@@ -1242,12 +1229,11 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                       totalImages = 0;
                     });
                   }
-
+                  
                   if (context.mounted) {
                     ScaffoldMessenger.of(parentContext).showSnackBar(
                       SnackBar(
-                        content: Text(
-                            'Category "$selectedCategoryToDelete" deleted successfully!'),
+                        content: Text('Category "$selectedCategoryToDelete" deleted successfully!'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -1257,7 +1243,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                     isLoading = false;
                     errorMessage = 'Failed to delete category: $e';
                   });
-
+                  
                   if (context.mounted) {
                     ScaffoldMessenger.of(parentContext).showSnackBar(
                       SnackBar(
@@ -1277,66 +1263,66 @@ class _MenuPageState extends ConsumerState<MenuPage> {
             }
 
             Future<void> uploadImageToCategory(String category) async {
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.image,
-                withData: true,
-              );
-
-              if (result == null || result.files.isEmpty) return;
-
-              final file = result.files.first;
-              if (file.bytes == null) {
-                if (parentContext.mounted) {
-                  ScaffoldMessenger.of(parentContext).showSnackBar(
-                    const SnackBar(
-                      content: Text('Selected file could not be read.'),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  );
-                }
-                return;
-              }
-
-              setState(() {
-                isUploading = true;
-              });
-
-              try {
-                final url = await viewModel.uploadImageToCategory(
-                  bytes: file.bytes!,
-                  originalFileName: file.name,
-                  category: category,
-                );
-
-                if (!parentContext.mounted || !dialogContext.mounted) return;
-
-                // Optionally auto-select the uploaded image
-                onSelected(url);
-                Navigator.of(dialogContext).pop();
-
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.image,
+              withData: true,
+            );
+            
+            if (result == null || result.files.isEmpty) return;
+            
+            final file = result.files.first;
+            if (file.bytes == null) {
+              if (parentContext.mounted) {
                 ScaffoldMessenger.of(parentContext).showSnackBar(
-                  SnackBar(
-                    content: Text('Image uploaded to $category successfully!'),
-                    backgroundColor: Colors.green,
+                  const SnackBar(
+                    content: Text('Selected file could not be read.'),
+                    backgroundColor: Colors.redAccent,
                   ),
                 );
-              } catch (e) {
-                if (parentContext.mounted) {
-                  ScaffoldMessenger.of(parentContext).showSnackBar(
-                    SnackBar(
-                      content: Text('Upload failed: $e'),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  );
-                }
-              } finally {
-                if (context.mounted) {
-                  setState(() {
-                    isUploading = false;
-                  });
-                }
+              }
+              return;
+            }
+
+            setState(() {
+              isUploading = true;
+            });
+            
+            try {
+              final url = await viewModel.uploadImageToCategory(
+                bytes: file.bytes!,
+                originalFileName: file.name,
+                category: category,
+              );
+              
+              if (!parentContext.mounted || !dialogContext.mounted) return;
+              
+              // Optionally auto-select the uploaded image
+              onSelected(url);
+              Navigator.of(dialogContext).pop();
+              
+              ScaffoldMessenger.of(parentContext).showSnackBar(
+                SnackBar(
+                  content: Text('Image uploaded to $category successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } catch (e) {
+              if (parentContext.mounted) {
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Upload failed: $e'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            } finally {
+              if (context.mounted) {
+                setState(() {
+                  isUploading = false;
+                });
               }
             }
+          }
 
             // Show category selector for upload
             Future<void> showUploadCategorySelector() async {
@@ -1414,589 +1400,315 @@ class _MenuPageState extends ConsumerState<MenuPage> {
               }
             }
 
-            // Initialize on first build
-            if (!initialized) {
-              initialized = true;
-              Future.microtask(() => loadCategories());
-            }
+          // Initialize on first build
+          if (!initialized) {
+            initialized = true;
+            Future.microtask(() => loadCategories());
+          }
 
-            return AlertDialog(
-              backgroundColor: Colors.grey.shade900,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              title: Row(
-                children: [
-                  if (selectedCategory != null)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          selectedCategory = null;
-                          storageImages = [];
-                          currentPage = 0;
-                          totalImages = 0;
-                        });
-                      },
-                    ),
-                  Expanded(
-                    child: Text(
-                      selectedCategory != null
-                          ? '$selectedCategory Images'
-                          : 'Select Category',
-                      style: const TextStyle(color: Colors.white),
-                    ),
+          return AlertDialog(
+            backgroundColor: Colors.grey.shade900,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            title: Row(
+              children: [
+                if (selectedCategory != null)
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        selectedCategory = null;
+                        storageImages = [];
+                        currentPage = 0;
+                        totalImages = 0;
+                      });
+                    },
                   ),
-                ],
-              ),
-              content: SizedBox(
-                width: 700,
-                height: 520,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Upload button - show on both category and image views
-                    ElevatedButton.icon(
-                      onPressed: isUploading
-                          ? null
-                          : selectedCategory == null
-                              ? showUploadCategorySelector // On category view
-                              : () => uploadImageToCategory(
-                                  selectedCategory!), // On image view
-                      icon: Icon(isUploading
-                          ? Icons.hourglass_empty
-                          : Icons.cloud_upload),
-                      label: Text(isUploading
-                          ? 'Uploading...'
+                Expanded(
+                  child: Text(
+                    selectedCategory != null 
+                        ? '$selectedCategory Images' 
+                        : 'Select Category',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 700,
+              height: 520,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Upload button - show on both category and image views
+                  ElevatedButton.icon(
+                    onPressed: isUploading 
+                        ? null 
+                        : selectedCategory == null
+                            ? showUploadCategorySelector  // On category view
+                            : () => uploadImageToCategory(selectedCategory!), // On image view
+                    icon: Icon(isUploading 
+                        ? Icons.hourglass_empty 
+                        : Icons.cloud_upload),
+                    label: Text(
+                      isUploading 
+                          ? 'Uploading...' 
                           : selectedCategory == null
                               ? 'Upload New Image'
-                              : 'Upload to $selectedCategory'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                              : 'Upload to $selectedCategory'
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Add and Delete Category buttons - only show on category view
+                  if (selectedCategory == null)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _showAddCategoryDialog(
+                              context: context,
+                              setState: setState,
+                              loadCategories: loadCategories,
+                            ),
+                            icon: const Icon(Icons.create_new_folder),
+                            label: const Text('Add Category'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: categories.isEmpty
+                                ? null
+                                : () => _showDeleteCategoryDialog(
+                                      context: context,
+                                      setState: setState,
+                                      loadCategories: loadCategories,
+                                      categories: categories,
+                                    ),
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Delete Category'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (selectedCategory == null) const SizedBox(height: 12),
+                  
+                  if (errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        errorMessage!,
+                        style: const TextStyle(color: Colors.redAccent),
                       ),
                     ),
-                    const SizedBox(height: 12),
-
-                    // Add and Delete Category buttons - only show on category view
-                    if (selectedCategory == null)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _showAddCategoryDialog(
-                                context: context,
-                                setState: setState,
-                                loadCategories: loadCategories,
-                              ),
-                              icon: const Icon(Icons.create_new_folder),
-                              label: const Text('Add Category'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: categories.isEmpty
-                                  ? null
-                                  : () => _showDeleteCategoryDialog(
-                                        context: context,
-                                        setState: setState,
-                                        loadCategories: loadCategories,
-                                        categories: categories,
-                                      ),
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('Delete Category'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (selectedCategory == null) const SizedBox(height: 12),
-
-                    if (errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-
-                    // Main content area
-                    Expanded(
-                      child: isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : selectedCategory == null
-                              // Show categories grid
-                              ? GridView.builder(
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                    childAspectRatio: 1.5,
-                                  ),
-                                  itemCount: categories.length,
-                                  itemBuilder: (context, index) {
-                                    final category = categories[index];
-                                    return GestureDetector(
-                                      onTap: () =>
-                                          loadCategoryImages(category, 0),
-                                      child: Card(
-                                        color: Colors.grey.shade800,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10)),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              Icons.folder,
-                                              color: Colors.blueAccent,
-                                              size: 40,
+                  
+                  // Main content area
+                  Expanded(
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : selectedCategory == null
+                            // Show categories grid
+                            ? GridView.builder(
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.5,
+                                ),
+                                itemCount: categories.length,
+                                itemBuilder: (context, index) {
+                                  final category = categories[index];
+                                  return GestureDetector(
+                                    onTap: () => loadCategoryImages(category, 0),
+                                    child: Card(
+                                      color: Colors.grey.shade800,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.folder,
+                                            color: Colors.blueAccent,
+                                            size: 40,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8.0),
+                                            child: Text(
+                                              category,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            const SizedBox(height: 8),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8.0),
-                                              child: Text(
-                                                category,
-                                                style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12),
-                                                textAlign: TextAlign.center,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
-                                    );
-                                  },
-                                )
-                              // Show images grid
-                              : storageImages.isEmpty
-                                  ? const Center(
-                                      child: Text('No images in this category',
-                                          style:
-                                              TextStyle(color: Colors.white70)))
-                                  : // Replace the existing GridView.builder for images with this:
-                                  GridView.builder(
-                                      gridDelegate:
-                                          const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 3,
-                                        crossAxisSpacing: 12,
-                                        mainAxisSpacing: 12,
-                                        childAspectRatio: 1.0, // Square images
-                                      ),
-                                      itemCount: storageImages.length,
-                                      itemBuilder: (context, index) {
-                                        final image = storageImages[index];
-                                        return GestureDetector(
-                                          onTap: () {
-                                            onSelected(image.publicUrl);
-                                            Navigator.of(dialogContext).pop();
-                                          },
-                                          child: Card(
-                                            color: Colors.grey.shade800,
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10)),
-                                            child: Stack(
-                                              children: [
-                                                Positioned.fill(
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10),
-                                                    child: Container(
-                                                      color:
-                                                          Colors.grey.shade900,
-                                                      child: Image.network(
-                                                        image.publicUrl,
-                                                        fit: BoxFit.contain,
-                                                        errorBuilder: (context,
-                                                                error,
-                                                                stackTrace) =>
-                                                            const Center(
-                                                          child: Icon(
-                                                            Icons.broken_image,
-                                                            color:
-                                                                Colors.white54,
-                                                            size: 32,
-                                                          ),
+                                    ),
+                                  );
+                                },
+                              )
+                            // Show images grid
+                            : storageImages.isEmpty
+                                ? const Center(
+                                    child: Text('No images in this category',
+                                        style: TextStyle(color: Colors.white70)))
+                                : GridView.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 1.0, // Square images
+                                    ),
+                                    itemCount: storageImages.length,
+                                    itemBuilder: (context, index) {
+                                      final image = storageImages[index];
+                                      return GestureDetector(
+                                        onTap: () {
+                                          onSelected(image.publicUrl);
+                                          Navigator.of(dialogContext).pop();
+                                        },
+                                        child: Card(
+                                          color: Colors.grey.shade800,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10)),
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  child: Container(
+                                                    color: Colors.grey.shade900,
+                                                    child: Image.network(
+                                                      image.publicUrl,
+                                                      fit: BoxFit.contain, // Fit entire image without cropping
+                                                      errorBuilder: (context,
+                                                              error,
+                                                              stackTrace) =>
+                                                          const Center(
+                                                        child: Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.white54,
+                                                          size: 32,
                                                         ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
-                                                // Add delete button in top-right corner
-                                                Positioned(
-                                                  top: 4,
-                                                  right: 4,
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black
-                                                          .withOpacity(0.7),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              20),
-                                                    ),
-                                                    child: IconButton(
-                                                      icon: const Icon(
-                                                        Icons.delete,
-                                                        color: Colors.redAccent,
-                                                        size: 20,
-                                                      ),
-                                                      padding: EdgeInsets.zero,
-                                                      constraints:
-                                                          const BoxConstraints(
-                                                        minWidth: 32,
-                                                        minHeight: 32,
-                                                      ),
-                                                      tooltip: 'Delete image',
-                                                      onPressed: () async {
-                                                        // Show confirmation dialog
-                                                        final confirm =
-                                                            await showDialog<
-                                                                bool>(
-                                                          context: context,
-                                                          builder: (BuildContext
-                                                              context) {
-                                                            return AlertDialog(
-                                                              backgroundColor:
-                                                                  Colors.grey
-                                                                      .shade900,
-                                                              shape: RoundedRectangleBorder(
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              12)),
-                                                              title: const Text(
-                                                                  'Delete Image',
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .white)),
-                                                              content: Column(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  const Text(
-                                                                      'Are you sure you want to delete this image?',
-                                                                      style: TextStyle(
-                                                                          color:
-                                                                              Colors.white70)),
-                                                                  const SizedBox(
-                                                                      height:
-                                                                          12),
-                                                                  Container(
-                                                                    padding:
-                                                                        const EdgeInsets
-                                                                            .all(
-                                                                            8),
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      color: Colors
-                                                                          .grey
-                                                                          .shade800,
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              4),
-                                                                    ),
-                                                                    child: Row(
-                                                                      children: [
-                                                                        const Icon(
-                                                                            Icons
-                                                                                .image,
-                                                                            size:
-                                                                                16,
-                                                                            color:
-                                                                                Colors.white54),
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                8),
-                                                                        Expanded(
-                                                                          child: Text(
-                                                                              image.name,
-                                                                              style: const TextStyle(color: Colors.white54, fontSize: 12),
-                                                                              overflow: TextOverflow.ellipsis),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      height:
-                                                                          12),
-                                                                  Container(
-                                                                    padding:
-                                                                        const EdgeInsets
-                                                                            .all(
-                                                                            8),
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      color: Colors
-                                                                          .redAccent
-                                                                          .withOpacity(
-                                                                              0.1),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              8),
-                                                                      border: Border.all(
-                                                                          color: Colors
-                                                                              .redAccent
-                                                                              .withOpacity(0.3)),
-                                                                    ),
-                                                                    child: Row(
-                                                                      children: const [
-                                                                        Icon(
-                                                                            Icons
-                                                                                .warning,
-                                                                            color:
-                                                                                Colors.redAccent,
-                                                                            size: 16),
-                                                                        SizedBox(
-                                                                            width:
-                                                                                8),
-                                                                        Expanded(
-                                                                          child:
-                                                                              Text(
-                                                                            'This action cannot be undone',
-                                                                            style:
-                                                                                TextStyle(color: Colors.redAccent, fontSize: 12),
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              actions: [
-                                                                TextButton(
-                                                                  onPressed: () =>
-                                                                      Navigator.pop(
-                                                                          context,
-                                                                          false),
-                                                                  child: const Text(
-                                                                      'Cancel',
-                                                                      style: TextStyle(
-                                                                          color:
-                                                                              Colors.white70)),
-                                                                ),
-                                                                ElevatedButton(
-                                                                  onPressed: () =>
-                                                                      Navigator.pop(
-                                                                          context,
-                                                                          true),
-                                                                  style: ElevatedButton.styleFrom(
-                                                                      backgroundColor:
-                                                                          Colors
-                                                                              .redAccent),
-                                                                  child: const Text(
-                                                                      'Delete'),
-                                                                ),
-                                                              ],
-                                                            );
-                                                          },
-                                                        );
-
-                                                        if (confirm == true) {
-                                                          // Show loading
-                                                          setState(() {
-                                                            isLoading = true;
-                                                          });
-
-                                                          try {
-                                                            // Call the ViewModel method
-                                                            final success =
-                                                                await viewModel
-                                                                    .deleteStorageImage(
-                                                              imagePath:
-                                                                  image.path,
-                                                            );
-
-                                                            if (success) {
-                                                              // Refresh the current page
-                                                              await loadCategoryImages(
-                                                                  selectedCategory!,
-                                                                  currentPage);
-
-                                                              if (parentContext
-                                                                  .mounted) {
-                                                                ScaffoldMessenger.of(
-                                                                        parentContext)
-                                                                    .showSnackBar(
-                                                                  SnackBar(
-                                                                    content:
-                                                                        Row(
-                                                                      children: const [
-                                                                        Icon(
-                                                                            Icons
-                                                                                .check_circle,
-                                                                            color:
-                                                                                Colors.white),
-                                                                        SizedBox(
-                                                                            width:
-                                                                                8),
-                                                                        Text(
-                                                                            'Image deleted successfully'),
-                                                                      ],
-                                                                    ),
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .green,
-                                                                  ),
-                                                                );
-                                                              }
-                                                            } else {
-                                                              setState(() {
-                                                                isLoading =
-                                                                    false;
-                                                              });
-                                                              if (parentContext
-                                                                  .mounted) {
-                                                                ScaffoldMessenger.of(
-                                                                        parentContext)
-                                                                    .showSnackBar(
-                                                                  const SnackBar(
-                                                                    content: Text(
-                                                                        'Failed to delete image'),
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .redAccent,
-                                                                  ),
-                                                                );
-                                                              }
-                                                            }
-                                                          } catch (e) {
-                                                            setState(() {
-                                                              isLoading = false;
-                                                            });
-                                                            if (parentContext
-                                                                .mounted) {
-                                                              ScaffoldMessenger.of(
-                                                                      parentContext)
-                                                                  .showSnackBar(
-                                                                SnackBar(
-                                                                  content: Text(
-                                                                      'Error: ${e.toString()}'),
-                                                                  backgroundColor:
-                                                                      Colors
-                                                                          .redAccent,
-                                                                ),
-                                                              );
-                                                            }
-                                                          }
-                                                        }
-                                                      },
+                                              ),
+                                              Positioned(
+                                                bottom: 0,
+                                                left: 0,
+                                                right: 0,
+                                                child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black
+                                                        .withOpacity(0.6),
+                                                    borderRadius:
+                                                        const BorderRadius.only(
+                                                      bottomLeft:
+                                                          Radius.circular(10),
+                                                      bottomRight:
+                                                          Radius.circular(10),
                                                     ),
                                                   ),
-                                                ),
-                                                // Image name at bottom
-                                                Positioned(
-                                                  bottom: 0,
-                                                  left: 0,
-                                                  right: 0,
-                                                  child: Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black
-                                                          .withOpacity(0.6),
-                                                      borderRadius:
-                                                          const BorderRadius
-                                                              .only(
-                                                        bottomLeft:
-                                                            Radius.circular(10),
-                                                        bottomRight:
-                                                            Radius.circular(10),
-                                                      ),
-                                                    ),
-                                                    child: Text(
-                                                      image.name,
-                                                      style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 10),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
+                                                  child: Text(
+                                                    image.name,
+                                                    style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
-                                        );
-                                      },
-                                    ),
-                    ),
-
-                    // Pagination controls (only for images)
-                    if (selectedCategory != null && storageImages.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              totalImages > 0
-                                  ? 'Page ${currentPage + 1} - Showing ${storageImages.length} of $totalImages images'
-                                  : 'Page ${currentPage + 1} - ${storageImages.length} images',
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: currentPage == 0 || isLoading
-                                      ? null
-                                      : () => loadCategoryImages(
-                                          selectedCategory!, currentPage - 1),
-                                  icon: const Icon(Icons.chevron_left),
-                                  tooltip: 'Previous page',
-                                ),
-                                IconButton(
-                                  onPressed: (!hasMore || isLoading)
-                                      ? null
-                                      : () => loadCategoryImages(
-                                          selectedCategory!, currentPage + 1),
-                                  icon: const Icon(Icons.chevron_right),
-                                  tooltip: 'Next page',
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                  ),
+                  
+                  // Pagination controls (only for images)
+                  if (selectedCategory != null && storageImages.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            totalImages > 0
+                                ? 'Page ${currentPage + 1} - Showing ${storageImages.length} of $totalImages images'
+                                : 'Page ${currentPage + 1} - ${storageImages.length} images',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: currentPage == 0 || isLoading
+                                    ? null
+                                    : () => loadCategoryImages(
+                                        selectedCategory!, currentPage - 1),
+                                icon: const Icon(Icons.chevron_left),
+                                tooltip: 'Previous page',
+                              ),
+                              IconButton(
+                                onPressed: (!hasMore || isLoading)
+                                    ? null
+                                    : () => loadCategoryImages(
+                                        selectedCategory!, currentPage + 1),
+                                icon: const Icon(Icons.chevron_right),
+                                tooltip: 'Next page',
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
   }
+
 
   void _showSelectAddonsDialog(
       BuildContext context, Function(Addon) onAdd) async {
@@ -2257,11 +1969,9 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                         : 'https://via.placeholder.com/60',
                                     height: 60,
                                     width: 60,
-                                    fit: BoxFit
-                                        .contain, // Fit entire image without cropping
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                        Icons.image_not_supported,
-                                        size: 24),
+                                    fit: BoxFit.contain, // Fit entire image without cropping
+                                    errorBuilder: (_, __, ___) =>
+                                        const Icon(Icons.image_not_supported, size: 24),
                                   ),
                                 ),
                               ),
