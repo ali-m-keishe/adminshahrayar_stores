@@ -1,6 +1,7 @@
 import 'package:adminshahrayar_stores/data/models/order.dart';
 import 'package:adminshahrayar_stores/data/models/order_details.dart';
 import 'package:adminshahrayar_stores/data/repositories/order_repository.dart';
+import 'package:adminshahrayar_stores/ui/orders/views/address_details_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -48,8 +49,29 @@ class OrderDetailsDialog extends ConsumerWidget {
           ),
           data: (orderDetails) {
             if (orderDetails == null) {
-              return const Center(
-                child: Text('Order details not found'),
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Order details not found',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Order ID: #${order.id}',
+                      style: TextStyle(color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                      onPressed: () => ref.refresh(orderDetailsProvider(order.id)),
+                    ),
+                  ],
+                ),
               );
             }
             return _buildOrderDetailsContent(context, orderDetails, textTheme);
@@ -101,11 +123,123 @@ class OrderDetailsDialog extends ConsumerWidget {
                       timeago.format(orderDetails.order.createdAt), textTheme),
                   _buildDetailRow('Payment Token:',
                       orderDetails.order.paymentToken, textTheme),
-                  _buildDetailRow('Address:',
-                      orderDetails.order.addressId == null || orderDetails.order.addressId == 0
-                          ? 'Address is empty or deleted'
-                          : (orderDetails.order.addressFormatted ?? 'Address #${orderDetails.order.addressId}'),
+                  _buildClickableAddressRow(
+                      context,
+                      'Address:',
+                      orderDetails.order.addressId,
+                      orderDetails.order.addressFormatted,
                       textTheme),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Customer Information - Prominent Section
+          Card(
+            color: Colors.blue.withOpacity(0.1),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Customer Details',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Debug: Print customer info
+                  Builder(
+                    builder: (context) {
+                      print('🔍 [DIALOG] Customer info - email: ${orderDetails.email}, phone: ${orderDetails.phone}');
+                      print('🔍 [DIALOG] Cart email: ${orderDetails.cart.email}, phone: ${orderDetails.cart.phone}');
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  
+                  // Always show email if available
+                  if (orderDetails.email != null && orderDetails.email!.isNotEmpty)
+                    _buildCustomerDetailRow(
+                      context,
+                      Icons.email,
+                      'Email:',
+                      orderDetails.email!,
+                      textTheme,
+                    )
+                  else if (orderDetails.cart.email != null && orderDetails.cart.email!.isNotEmpty)
+                    _buildCustomerDetailRow(
+                      context,
+                      Icons.email,
+                      'Email:',
+                      orderDetails.cart.email!,
+                      textTheme,
+                    ),
+                  
+                  // Always show phone if available
+                  if (orderDetails.phone != null && orderDetails.phone!.isNotEmpty)
+                    _buildCustomerDetailRow(
+                      context,
+                      Icons.phone,
+                      'Phone:',
+                      orderDetails.phone!,
+                      textTheme,
+                    )
+                  else if (orderDetails.cart.phone != null && orderDetails.cart.phone!.isNotEmpty)
+                    _buildCustomerDetailRow(
+                      context,
+                      Icons.phone,
+                      'Phone:',
+                      orderDetails.cart.phone!,
+                      textTheme,
+                    ),
+                  
+                  // Show message if no contact info available
+                  if ((orderDetails.email == null || orderDetails.email!.isEmpty) &&
+                      (orderDetails.phone == null || orderDetails.phone!.isEmpty) &&
+                      (orderDetails.cart.email == null || orderDetails.cart.email!.isEmpty) &&
+                      (orderDetails.cart.phone == null || orderDetails.cart.phone!.isEmpty))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, 
+                            color: Colors.orange[300], 
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'No contact information available',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: Colors.orange[300],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  // Show User ID as fallback
+                  if ((orderDetails.email == null || orderDetails.email!.isEmpty) &&
+                      (orderDetails.phone == null || orderDetails.phone!.isEmpty) &&
+                      (orderDetails.cart.email == null || orderDetails.cart.email!.isEmpty) &&
+                      (orderDetails.cart.phone == null || orderDetails.cart.phone!.isEmpty))
+                    _buildDetailRow(
+                      'User ID:',
+                      orderDetails.cart.userId,
+                      textTheme,
+                    ),
                 ],
               ),
             ),
@@ -127,25 +261,6 @@ class OrderDetailsDialog extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _buildDetailRow(
                       'Cart Status:', orderDetails.cart.status, textTheme),
-                  // Debug: Print cart values
-                  Builder(
-                    builder: (context) {
-                      print('🔍 UI Debug - username: ${orderDetails.username}');
-                      print('🔍 UI Debug - phone: ${orderDetails.phone}');
-                      print('🔍 UI Debug - userId: ${orderDetails.cart.userId}');
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  if (orderDetails.username != null || orderDetails.phone != null) ...[
-                    if (orderDetails.username != null)
-                      _buildDetailRow(
-                          'Username:', orderDetails.username!, textTheme),
-                    if (orderDetails.phone != null)
-                      _buildDetailRow(
-                          'Phone:', orderDetails.phone!, textTheme),
-                  ] else
-                    _buildDetailRow(
-                        'User ID:', orderDetails.cart.userId, textTheme),
                   _buildDetailRow(
                       'Total Price:',
                       '\$${orderDetails.totalPrice.toStringAsFixed(2)}',
@@ -297,6 +412,101 @@ class OrderDetailsDialog extends ConsumerWidget {
               style: valueStyle ?? textTheme.bodyLarge,
               textAlign: TextAlign.end,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerDetailRow(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String value,
+    TextTheme textTheme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Theme.of(context).primaryColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  value,
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClickableAddressRow(
+    BuildContext context,
+    String title,
+    int? addressId,
+    String? addressFormatted,
+    TextTheme textTheme,
+  ) {
+    final addressText = addressId == null || addressId == 0
+        ? 'Address is empty or deleted'
+        : (addressFormatted ?? 'Address #$addressId');
+    
+    final isClickable = addressId != null && addressId != 0;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          Flexible(
+            child: isClickable
+                ? InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AddressDetailsDialog(addressId: addressId),
+                      );
+                    },
+                    child: Text(
+                      addressText,
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  )
+                : Text(
+                    addressText,
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.end,
+                  ),
           ),
         ],
       ),

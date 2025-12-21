@@ -4,6 +4,7 @@ import 'package:adminshahrayar_stores/ui/orders/viewmodels/orders_notifier.dart'
 import 'package:adminshahrayar_stores/ui/orders/views/order_search_delegate.dart';
 import 'package:adminshahrayar_stores/ui/orders/views/address_details_dialog.dart';
 import 'package:adminshahrayar_stores/ui/orders/views/order_status_badge.dart';
+import 'package:adminshahrayar_stores/widget/user_info_cell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -30,7 +31,8 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
     final notifier = ref.read(ordersProvider.notifier);
     final currentPage = ref.read(ordersPageIndexProvider);
     final offset = currentPage * itemsPerPage;
-    notifier.loadPaginatedAllOrders(limit: itemsPerPage, offset: offset);
+    final filter = ref.read(allOrdersFilterProvider);
+    notifier.loadPaginatedAllOrders(limit: itemsPerPage, offset: offset, filter: filter);
   }
 
   void _onPageChanged(int newPage) {
@@ -86,6 +88,8 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
                     DataColumn(label: Text('created_at')),
                     DataColumn(label: Text('cart_id')),
                     DataColumn(label: Text('status')),
+                    DataColumn(label: Text('Email')),
+                    DataColumn(label: Text('Phone')),
                     DataColumn(label: Text('payment_token')),
                     DataColumn(label: Text('address_id')),
                   ],
@@ -125,6 +129,8 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
                             child: OrderStatusBadge.fromString(order.status),
                           ),
                         ),
+                        DataCell(UserInfoCell(userId: order.userId, cartId: order.cartId, showEmail: true, showPhone: false)),
+                        DataCell(UserInfoCell(userId: order.userId, cartId: order.cartId, showEmail: false, showPhone: true)),
                         DataCell(
                           InkWell(
                             onTap: () => _showOrderDetails(context, order),

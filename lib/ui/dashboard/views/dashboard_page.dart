@@ -4,6 +4,7 @@ import 'package:adminshahrayar_stores/ui/dashboard/viewmodels/dashboard_viewmode
 import 'package:adminshahrayar_stores/ui/dashboard/views/order_details_dialog.dart';
 import 'package:adminshahrayar_stores/ui/dashboard/views/stat_card.dart';
 import 'package:adminshahrayar_stores/ui/orders/viewmodels/orders_notifier.dart';
+import 'package:adminshahrayar_stores/widget/user_info_cell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -146,6 +147,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           DataColumn(label: Text('created_at')),
                           DataColumn(label: Text('cart_id')),
                           DataColumn(label: Text('status')),
+                          DataColumn(label: Text('Email')),
+                          DataColumn(label: Text('Phone')),
                           DataColumn(label: Text('payment_token')),
                           DataColumn(label: Text('address_id')),
                         ],
@@ -224,6 +227,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   ),
                                 ),
                               ),
+                              DataCell(UserInfoCell(userId: order.userId, cartId: order.cartId, showEmail: true, showPhone: false)),
+                              DataCell(UserInfoCell(userId: order.userId, cartId: order.cartId, showEmail: false, showPhone: true)),
                               DataCell(Text(order.paymentToken)),
                               DataCell(
                                 InkWell(

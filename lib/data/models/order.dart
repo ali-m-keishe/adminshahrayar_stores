@@ -40,6 +40,7 @@ class Order {
   final int? addressId;
   final DateTime createdAt;
   final String? addressFormatted;
+  final String? userId; // User ID from cart
 
   Order({
     required this.id,
@@ -49,6 +50,7 @@ class Order {
     this.addressId,
     required this.createdAt,
     this.addressFormatted,
+    this.userId,
   });
 
   // JSON serialization methods
@@ -61,6 +63,26 @@ class Order {
       formattedAddress = json['address_formatted'] as String?;
     }
 
+    // Extract user_id from cart relation
+    String? userId;
+    if (json['cart'] != null) {
+      final cart = json['cart'];
+      print('🔍 Order.fromJson - cart type: ${cart.runtimeType}');
+      print('🔍 Order.fromJson - cart data: $cart');
+      
+      if (cart is Map) {
+        userId = cart['user_id'] as String?;
+        print('🔍 Order.fromJson - extracted userId from Map: $userId');
+      } else if (cart is List && cart.isNotEmpty) {
+        userId = (cart[0] as Map)['user_id'] as String?;
+        print('🔍 Order.fromJson - extracted userId from List: $userId');
+      }
+    } else {
+      print('⚠️ Order.fromJson - cart is null for order ${json['id']}');
+    }
+    
+    print('✅ Order.fromJson - Final userId: $userId');
+
     return Order(
       id: json['id'] ?? 0,
       cartId: json['cart_id'] ?? 0,
@@ -69,6 +91,7 @@ class Order {
       addressId: json['address_id'] as int?,
       createdAt: DateTime.parse(json['created_at']),
       addressFormatted: formattedAddress,
+      userId: userId,
     );
   }
 
@@ -81,6 +104,7 @@ class Order {
       if (addressId != null) 'address_id': addressId,
       'created_at': createdAt.toIso8601String(),
       if (addressFormatted != null) 'address_formatted': addressFormatted,
+      if (userId != null) 'user_id': userId,
     };
   }
 }
