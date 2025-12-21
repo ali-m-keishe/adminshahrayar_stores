@@ -83,32 +83,39 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
 
   Map<String, DateTime?> _computeDateRange(DateFilter? filter) {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
     switch (filter ?? DateFilter.All) {
       case DateFilter.Today:
-        final start = DateTime(now.year, now.month, now.day);
-        final end = start.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
+        // Today: from start of today to end of today
+        final start = today;
+        final end = today.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
+        print('📅 [FILTER] Today: $start to $end');
         return {'start': start, 'end': end};
+        
       case DateFilter.LastWeek:
-        // Previous full calendar week (Mon–Sun)
-        final startOfThisWeek = DateTime(now.year, now.month, now.day)
-            .subtract(Duration(days: (now.weekday - DateTime.monday)));
-        final start = startOfThisWeek.subtract(const Duration(days: 7));
-        final end = startOfThisWeek.subtract(const Duration(seconds: 1));
+        // Last 7 days: from 7 days ago to now
+        final start = now.subtract(const Duration(days: 7));
+        final end = now;
+        print('📅 [FILTER] LastWeek: $start to $end');
         return {'start': start, 'end': end};
+        
       case DateFilter.LastMonth:
-        // Previous full calendar month
-        final startOfThisMonth = DateTime(now.year, now.month, 1);
-        final previousMonth = DateTime(now.year, now.month - 1, 1);
-        final start = previousMonth;
-        final end = startOfThisMonth.subtract(const Duration(seconds: 1));
+        // Last 30 days: from 30 days ago to now
+        final start = now.subtract(const Duration(days: 30));
+        final end = now;
+        print('📅 [FILTER] LastMonth: $start to $end');
         return {'start': start, 'end': end};
+        
       case DateFilter.LastYear:
-        // Previous full calendar year
-        final startOfThisYear = DateTime(now.year, 1, 1);
-        final start = DateTime(now.year - 1, 1, 1);
-        final end = startOfThisYear.subtract(const Duration(seconds: 1));
+        // Last 365 days: from 365 days ago to now
+        final start = now.subtract(const Duration(days: 365));
+        final end = now;
+        print('📅 [FILTER] LastYear: $start to $end');
         return {'start': start, 'end': end};
+        
       case DateFilter.All:
+        print('📅 [FILTER] All: no date filter');
         return {'start': null, 'end': null};
     }
   }

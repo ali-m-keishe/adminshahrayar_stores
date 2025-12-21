@@ -28,6 +28,9 @@ class OrderDetails {
   /// Convenience getter for phone from cart
   String? get phone => cart.phone;
 
+  /// Convenience getter for email from cart
+  String? get email => cart.email;
+
   factory OrderDetails.fromJson(Map<String, dynamic> json) {
     return OrderDetails(
       order: Order.fromJson(json['order']),

@@ -35,20 +35,25 @@ class CustomersPage extends ConsumerWidget {
               child: DataTable(
                 columns: const [
                   DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Email')),
+                  DataColumn(label: Text('Phone Number')),
                   DataColumn(label: Text('Total Orders'), numeric: true),
                   DataColumn(label: Text('Total Spent'), numeric: true),
-                  // Add a column for actions like Edit/Delete
-                  DataColumn(label: Text('Phone Number')),
                 ],
                 rows: customers.map((customer) {
+                  final phoneText =
+                      (customer.phone == null || customer.phone!.isEmpty)
+                          ? 'User has no phone number yet'
+                          : customer.phone!;
                   return DataRow(cells: [
                     DataCell(Text(customer.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold))),
+                    DataCell(Text(customer.email ?? '')),
+                    DataCell(Text(phoneText,
                         style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text(customer.orderCount.toString())),
                     DataCell(Text(NumberFormat.simpleCurrency()
                         .format(customer.totalSpent))),
-                    DataCell(Text(customer.phone,
-                        style: const TextStyle(fontWeight: FontWeight.bold))),
                   ]);
                 }).toList(),
               ),

@@ -1,4 +1,4 @@
-  import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/order.dart';
@@ -9,7 +9,7 @@ final supabase = Supabase.instance.client;
 
 class OrderRepository {
   static const String _orderSelect =
-      '*, address:address_id (formatted_address, custom_label)';
+      '*, address:address_id (formatted_address, custom_label), cart:cart_id (user_id)';
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // Get all orders
@@ -69,15 +69,18 @@ class OrderRepository {
 
   // Get detailed order information including cart items
   Future<OrderDetails?> getOrderDetails(int orderId) async {
-    print('Fetching order details for order ID: $orderId');
+    print('🔍 Fetching order details for order ID: $orderId');
 
     try {
+      // First, try to get the order with all relations
+      print('📡 Attempting to fetch order with relations...');
       final response = await supabase.from('orders').select('''
           id,
           created_at,
           status,
           payment_token,
           address_id,
+          cart_id,
           address:address_id (
             id,
             formatted_address,
@@ -110,11 +113,62 @@ class OrderRepository {
           )
         ''').eq('id', orderId).single();
 
-      print('Order details response: $response');
+      print('✅ Order details response received');
+      print('📦 Response keys: ${response.keys.toList()}');
+      print('📦 Response cart: ${response['cart']}');
+
       // 🧠 تأكد إن الـ cart فعلاً Map مش List
-      final cartData = response['cart'] is List
-          ? (response['cart'] as List).first
-          : response['cart'];
+      dynamic cartData = response['cart'];
+      print('📦 Cart data type: ${cartData.runtimeType}');
+
+      if (cartData == null) {
+        print('❌ Cart data is null! Trying to fetch cart separately...');
+        // Fallback: fetch cart separately
+        final cartId = response['cart_id'] as int?;
+        if (cartId != null) {
+          print('🔍 Fetching cart separately for cart_id: $cartId');
+          final cartResponse = await supabase.from('cart').select('''
+                cart_id,
+                created_at,
+                status,
+                user_id,
+                total_price,
+                cart_items (
+                  id,
+                  cart_id,
+                  quantity,
+                  note,
+                  item_id,
+                  size_id,
+                  cart_item_addons,
+                  price,
+                  has_offer,
+                  created_at,
+                  item:items (*),
+                  size:item_sizes (*)
+                )
+              ''').eq('cart_id', cartId).single();
+          cartData = cartResponse;
+          print('✅ Fetched cart separately: ${cartData != null}');
+        } else {
+          throw Exception('Cart ID is null and cart relation is null');
+        }
+      } else {
+        // Handle if cart is a list
+        if (cartData is List) {
+          if (cartData.isEmpty) {
+            throw Exception('Cart list is empty');
+          }
+          cartData = cartData.first;
+          print('📦 Cart was a list, using first element');
+        }
+      }
+
+      if (cartData == null) {
+        throw Exception('Unable to fetch cart data');
+      }
+
+      print('✅ Cart data extracted successfully');
 
       // استخرج بيانات الشحن (رسوم التوصيل من المنطقة)
       double shippingFee = 0;
@@ -127,26 +181,32 @@ class OrderRepository {
       }
 
       // Fetch user info (email and phone) from auth.users
-      // Query: select id, email, phone, created_at from auth.users
+      // This is CRITICAL - we MUST get the user's email and phone
       String? username;
       String? phone;
+      String? email;
+
       try {
         final userId = cartData['user_id'] as String?;
-        print('🔍 Fetching user info for userId: $userId');
+        print('🔍 [ORDER DETAILS] Fetching user info for userId: $userId');
 
         if (userId != null && userId.toString().isNotEmpty) {
-          // Try using RPC function to query auth.users
+          // Method 1: Try using RPC function to query auth.users
+          bool userInfoFound = false;
+
           try {
+            print('📡 [ORDER DETAILS] Attempting RPC get_user_info...');
             final userResponse = await supabase.rpc('get_user_info', params: {
               'user_uuid': userId,
             });
 
-            print('📦 User response type: ${userResponse.runtimeType}');
-            print('📦 User response: $userResponse');
+            print(
+                '📦 [ORDER DETAILS] User RPC response type: ${userResponse.runtimeType}');
+            print('📦 [ORDER DETAILS] User RPC response: $userResponse');
 
             if (userResponse != null) {
               Map<String, dynamic>? userData;
-              
+
               // Handle different response formats
               if (userResponse is Map) {
                 userData = userResponse as Map<String, dynamic>;
@@ -156,68 +216,111 @@ class OrderRepository {
                 // If it's a JSON string, parse it
                 try {
                   userData = Map<String, dynamic>.from(
-                    jsonDecode(userResponse) as Map
-                  );
+                      jsonDecode(userResponse) as Map);
                 } catch (e) {
-                  print('⚠️ Failed to parse JSON string: $e');
+                  print('⚠️ [ORDER DETAILS] Failed to parse JSON string: $e');
                 }
               }
 
               if (userData != null && userData.isNotEmpty) {
-                // Get phone number (this should always be available)
+                // Capture phone/email
                 phone = userData['phone'] as String?;
-                // Use email as username, or phone if email is null
-                username = userData['email'] as String?;
+                email = userData['email'] as String?;
+                // Use email as username, fallback to phone, then anon stub
+                username = email;
                 if (username == null || username.isEmpty) {
-                  // If email is null, use phone as username or a default
-                  username = phone != null ? 'User $phone' : 'User ${userId.substring(0, 8)}...';
+                  username = phone != null && phone.isNotEmpty
+                      ? 'User $phone'
+                      : 'User ${userId.substring(0, 8)}...';
                 }
-                print('✅ Found user from auth.users: email=$username, phone=$phone');
-              } else {
-                print('⚠️ User data is null or empty');
+                print(
+                    '✅ [ORDER DETAILS] Found user from RPC: email=$email, phone=$phone');
+                userInfoFound = true;
               }
-            } else {
-              print('⚠️ No user data returned from get_user_info');
             }
           } catch (rpcError) {
-            print('⚠️ RPC get_user_info failed: $rpcError');
-            print('   Make sure you have run get_user_info_function.sql in Supabase SQL Editor');
-            print('   Falling back to get_all_users_basic...');
-            
-            // Fallback: Try existing RPC if available
+            print('⚠️ [ORDER DETAILS] RPC get_user_info failed: $rpcError');
+          }
+
+          // Method 2: Fallback to get_all_users_basic if RPC failed
+          if (!userInfoFound) {
             try {
+              print(
+                  '📡 [ORDER DETAILS] Falling back to get_all_users_basic...');
               final allUsers = await supabase.rpc('get_all_users_basic');
               if (allUsers != null && allUsers is List) {
-                print('📋 Fetched ${allUsers.length} users from get_all_users_basic');
+                print(
+                    '📋 [ORDER DETAILS] Fetched ${allUsers.length} users from get_all_users_basic');
                 for (var user in allUsers) {
                   final map = user as Map<String, dynamic>;
                   final responseUserId = map['id']?.toString() ?? '';
                   final cartUserId = userId.toString();
                   if (responseUserId == cartUserId) {
                     phone = map['phone'] as String?;
-                    username = map['user_name'] as String? ?? map['email'] as String?;
+                    email = map['email'] as String?;
+                    username = map['user_name'] as String? ?? email;
                     if (username == null || username.isEmpty) {
-                      username = phone != null ? 'User $phone' : 'User ${userId.substring(0, 8)}...';
+                      username = phone != null && phone.isNotEmpty
+                          ? 'User $phone'
+                          : 'User ${userId.substring(0, 8)}...';
                     }
-                    print('✅ Found user from get_all_users_basic: username=$username, phone=$phone');
+                    print(
+                        '✅ [ORDER DETAILS] Found user from get_all_users_basic: email=$email, phone=$phone');
+                    userInfoFound = true;
                     break;
                   }
                 }
               }
             } catch (fallbackError) {
-              print('⚠️ Fallback also failed: $fallbackError');
+              print(
+                  '⚠️ [ORDER DETAILS] get_all_users_basic also failed: $fallbackError');
             }
           }
+
+          // Method 3: Direct query to auth schema (if RLS allows)
+          if (!userInfoFound) {
+            try {
+              print('📡 [ORDER DETAILS] Attempting direct auth.users query...');
+              // Note: This might not work due to RLS, but worth trying
+              final directQuery = await supabase
+                  .from('auth.users')
+                  .select('email, phone')
+                  .eq('id', userId)
+                  .maybeSingle();
+
+              if (directQuery != null) {
+                email = directQuery['email'] as String?;
+                phone = directQuery['phone'] as String?;
+                username = email;
+                print(
+                    '✅ [ORDER DETAILS] Found user from direct query: email=$email, phone=$phone');
+                userInfoFound = true;
+              }
+            } catch (directError) {
+              print(
+                  '⚠️ [ORDER DETAILS] Direct auth.users query failed (expected if RLS blocks): $directError');
+            }
+          }
+
+          if (!userInfoFound) {
+            print(
+                '❌ [ORDER DETAILS] Could not fetch user info through any method');
+          }
         } else {
-          print('⚠️ userId is null or empty');
+          print('⚠️ [ORDER DETAILS] userId is null or empty');
         }
       } catch (e, stackTrace) {
-        print('❌ Error fetching user info: $e');
+        print('❌ [ORDER DETAILS] Error fetching user info: $e');
         print('Stack trace: $stackTrace');
-        // Continue without user info if query fails
+        // Continue without user info if query fails, but log it
       }
 
-      print('📤 Final values - username: $username, phone: $phone');
+      print(
+          '📤 [ORDER DETAILS] Final values - username: $username, email: $email, phone: $phone');
+
+      // Ensure we have the user_id from cart
+      final cartUserId = cartData['user_id'] as String?;
+      print('📤 [ORDER DETAILS] Cart user_id: $cartUserId');
 
       // 🔧 جهّز JSON متوافق مع OrderDetails.fromJson
       final jsonData = {
@@ -234,8 +337,10 @@ class OrderRepository {
           'created_at': cartData['created_at'],
           'status': cartData['status'],
           'total_price': cartData['total_price'],
-          'username': username ?? '', // <-- username instead of user_id
-          'phone': phone ?? '', // <-- phone instead of user_id
+          'user_id': cartUserId ?? '', // Ensure user_id is always present
+          'username': username ?? '', // Use empty string if null
+          'phone': phone, // nullable - can be null
+          'email': email, // nullable - can be null
         },
         'items': (cartData['cart_items'] as List? ?? []).map((item) {
           return {
@@ -269,12 +374,41 @@ class OrderRepository {
         'shipping_fee': shippingFee,
       };
 
-      final orderDetails = OrderDetails.fromJson(jsonData);
-      print('✅ Order details fetched successfully');
-      return orderDetails;
+      print('🔧 Building OrderDetails from JSON...');
+      print('📋 JSON data keys: ${jsonData.keys.toList()}');
+      print('📋 Cart keys: ${jsonData['cart']?.keys.toList()}');
+      print('📋 Items count: ${(jsonData['items'] as List).length}');
+
+      try {
+        final orderDetails = OrderDetails.fromJson(jsonData);
+        print('✅ Order details fetched and parsed successfully');
+        return orderDetails;
+      } catch (parseError, parseStack) {
+        print('❌ Error parsing OrderDetails: $parseError');
+        print('Parse stack: $parseStack');
+        print('JSON data that failed: $jsonData');
+        return null;
+      }
     } catch (e, stack) {
       print('❌ Error fetching order details: $e');
+      print('Error type: ${e.runtimeType}');
+      print('Full stack trace:');
       print(stack);
+
+      // Try a simpler query as fallback
+      try {
+        print('🔄 Attempting fallback: simple order query...');
+        final simpleResponse = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .single();
+        print('✅ Simple query succeeded, but cannot build full OrderDetails');
+        print('Simple response: $simpleResponse');
+      } catch (fallbackError) {
+        print('❌ Fallback query also failed: $fallbackError');
+      }
+
       return null;
     }
   }
@@ -555,6 +689,12 @@ class OrderRepository {
   }) async {
     try {
       print('🔍 Fetching paginated ALL orders: limit=$limit, offset=$offset');
+      if (startDate != null) {
+        print('📅 Start date filter: ${startDate.toUtc().toIso8601String()}');
+      }
+      if (endDate != null) {
+        print('📅 End date filter: ${endDate.toUtc().toIso8601String()}');
+      }
 
       // Count query
       dynamic countQuery = _supabase.from('orders').select('id');
@@ -568,6 +708,7 @@ class OrderRepository {
       }
       final countResult = await countQuery;
       final totalCount = (countResult as List).length;
+      print('📊 Total count with filters: $totalCount');
 
       // Items query with pagination (apply filters BEFORE order/range)
       dynamic itemsQuery = _supabase.from('orders').select(_orderSelect);
@@ -637,12 +778,18 @@ class OrderRepository {
       // Execute item query
       final itemsResponse = await itemQuery;
 
+      print('🔍 Raw orders response: $itemsResponse');
+
       // Parse orders
-      final orders = (itemsResponse as List)
-          .map((json) => Order.fromJson(json as Map<String, dynamic>))
-          .toList();
+      final orders = (itemsResponse as List).map((json) {
+        print('🔍 Parsing order: ${json['id']}');
+        return Order.fromJson(json as Map<String, dynamic>);
+      }).toList();
 
       print('✅ Fetched ${orders.length} active orders (total: $totalCount)');
+      for (var order in orders) {
+        print('📋 Order #${order.id} - userId: ${order.userId}');
+      }
 
       return {
         'orders': orders,
@@ -655,6 +802,79 @@ class OrderRepository {
         'orders': <Order>[],
         'totalCount': 0,
       };
+    }
+  }
+
+  /// Helper method to get user info (email and phone) by user ID
+  Future<Map<String, String?>> getUserInfo(String userId) async {
+    try {
+      if (userId.isEmpty) {
+        print('⚠️ getUserInfo - userId is empty');
+        return {'email': null, 'phone': null};
+      }
+
+      print('🔍 getUserInfo - Fetching user info for userId: $userId');
+
+      final userResponse = await supabase.rpc('get_user_info', params: {
+        'user_uuid': userId,
+      });
+
+      print('📦 getUserInfo - RPC response type: ${userResponse.runtimeType}');
+      print('📦 getUserInfo - RPC response: $userResponse');
+
+      if (userResponse != null) {
+        Map<String, dynamic>? userData;
+
+        if (userResponse is Map) {
+          userData = userResponse as Map<String, dynamic>;
+        } else if (userResponse is List && userResponse.isNotEmpty) {
+          userData = userResponse[0] as Map<String, dynamic>;
+        } else if (userResponse is String) {
+          try {
+            userData =
+                Map<String, dynamic>.from(jsonDecode(userResponse) as Map);
+          } catch (e) {
+            print('⚠️ Failed to parse JSON string: $e');
+          }
+        }
+
+        if (userData != null && userData.isNotEmpty) {
+          final email = userData['email'] as String?;
+          final phone = userData['phone'] as String?;
+          print('✅ getUserInfo - Found email: $email, phone: $phone');
+          return {
+            'email': email,
+            'phone': phone,
+          };
+        } else {
+          print('⚠️ getUserInfo - userData is null or empty');
+        }
+      } else {
+        print('⚠️ getUserInfo - userResponse is null');
+      }
+    } catch (e, stackTrace) {
+      print('❌ Error fetching user info for $userId: $e');
+      print('Stack trace: $stackTrace');
+    }
+    return {'email': null, 'phone': null};
+  }
+
+  /// Helper method to get userId from cart_id (fallback if relation doesn't work)
+  Future<String?> getUserIdFromCart(int cartId) async {
+    try {
+      print('🔍 getUserIdFromCart - Fetching userId for cartId: $cartId');
+      final response = await _supabase
+          .from('cart')
+          .select('user_id')
+          .eq('cart_id', cartId)
+          .single();
+
+      final userId = response['user_id'] as String?;
+      print('✅ getUserIdFromCart - Found userId: $userId');
+      return userId;
+    } catch (e) {
+      print('❌ Error fetching userId from cart: $e');
+      return null;
     }
   }
 }
