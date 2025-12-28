@@ -175,6 +175,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     String? originalImageUrl,
     List<Addon>? addons,
     List<ItemSize>? sizes,
+    bool? isActive,
   }) async {
     try {
       await _menuRepository.updateMenuItem(
@@ -187,6 +188,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
         newImageUrl: imageUrl,
         addons: addons,
         sizes: sizes,
+        isActive: isActive,
       );
     } catch (e) {
       print("❌ Error editing menu item: $e");
@@ -194,7 +196,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     }
   }
 
-  // 🔹 Delete item
+  // 🔹 Delete item (soft delete - sets is_active = false)
   Future<void> deleteMenuItem(int itemId) async {
     try {
       await _menuRepository.deleteMenuItem(itemId);
@@ -202,6 +204,51 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     } catch (e) {
       print("❌ Error deleting menu item: $e");
       rethrow;
+    }
+  }
+
+  /// 🔹 Toggle menu item active status
+  Future<void> toggleMenuItemActive(int itemId, bool isActive) async {
+    try {
+      await _menuRepository.toggleMenuItemActive(itemId, isActive);
+    } catch (e) {
+      print("❌ Error toggling menu item active status: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Load paginated archived menu items with optional category filter
+  Future<void> loadPaginatedArchivedMenuItems({
+    required int limit,
+    required int offset,
+    int? categoryId,
+  }) async {
+    try {
+      // Get current state
+      final currentState = state.value;
+      if (currentState == null) return;
+
+      // Fetch paginated archived items
+      final result = await _menuRepository.getPaginatedArchivedMenuItems(
+        limit: limit,
+        offset: offset,
+        categoryId: categoryId,
+      );
+
+      final items = result['items'] as List<MenuItem>;
+      final totalCount = result['totalCount'] as int;
+
+      // Update state with paginated archived items
+      state = AsyncValue.data(
+        currentState.copyWith(
+          menuItems: items,
+          totalMenuItemsCount: totalCount,
+        ),
+      );
+    } catch (e, stack) {
+      print("❌ Error loading paginated archived menu items: $e");
+      print(stack);
+      state = AsyncValue.error(e, stack);
     }
   }
 

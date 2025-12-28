@@ -11,6 +11,7 @@ class MenuItem {
   final String image;
   final int categoryId;
   final DateTime createdAt;
+  final bool isActive;
   final List<Addon>? addons; // ✅ Nullable
   final List<ItemSize>? sizes; // ✅ Nullable
 
@@ -22,6 +23,7 @@ class MenuItem {
     required this.image,
     required this.categoryId,
     required this.createdAt,
+    this.isActive = true,
     this.addons, // optional
     this.sizes, // optional
   });
@@ -36,6 +38,7 @@ class MenuItem {
       image: json['image'] ?? '',
       categoryId: json['category_id'] ?? 0,
       createdAt: DateTime.parse(json['created_at']),
+      isActive: json['is_active'] ?? true,
       addons: (json['addons'] != null && json['addons'] is List)
           ? (json['addons'] as List)
               .map((e) => Addon.fromJson(e))
@@ -59,6 +62,7 @@ class MenuItem {
       'image': image,
       'category_id': categoryId,
       'created_at': createdAt.toIso8601String(),
+      'is_active': isActive,
       if (addons != null)
         'addons': addons!.map((e) => e.toJson()).toList(),
       if (sizes != null)

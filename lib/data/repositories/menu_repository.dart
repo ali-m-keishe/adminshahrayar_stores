@@ -543,6 +543,7 @@ class MenuRepository {
   }
 
   /// 🔹 Fetch all menu items (with category + optional addons & sizes)
+  /// Only returns items where is_active = true
   Future<List<MenuItem>> getAllMenuItems() async {
     try {
       final response = await _supabase.from('items').select('''
@@ -552,7 +553,7 @@ class MenuRepository {
         addon:addon_id (*)
       ),
       item_sizes (*)
-    ''').order('created_at', ascending: false);
+    ''').eq('is_active', true).order('created_at', ascending: false);
 
       final items = (response as List).map((json) {
         final map = Map<String, dynamic>.from(json);
@@ -586,6 +587,7 @@ class MenuRepository {
   }
 
   /// 🔹 Fetch paginated menu items with optional category filter
+  /// Only returns items where is_active = true
   Future<Map<String, dynamic>> getPaginatedMenuItems({
     required int limit,
     required int offset,
@@ -601,8 +603,11 @@ class MenuRepository {
 
       if (categoryId != null) {
         // With category filter
-        countQuery =
-            _supabase.from('items').select('id').eq('category_id', categoryId);
+        countQuery = _supabase
+            .from('items')
+            .select('id')
+            .eq('category_id', categoryId)
+            .eq('is_active', true);
 
         itemQuery = _supabase
             .from('items')
@@ -615,11 +620,15 @@ class MenuRepository {
               item_sizes (*)
             ''')
             .eq('category_id', categoryId)
+            .eq('is_active', true)
             .order('created_at', ascending: false)
             .range(offset, offset + limit - 1);
       } else {
         // Without category filter
-        countQuery = _supabase.from('items').select('id');
+        countQuery = _supabase
+            .from('items')
+            .select('id')
+            .eq('is_active', true);
 
         itemQuery = _supabase
             .from('items')
@@ -631,6 +640,7 @@ class MenuRepository {
               ),
               item_sizes (*)
             ''')
+            .eq('is_active', true)
             .order('created_at', ascending: false)
             .range(offset, offset + limit - 1);
       }
@@ -830,6 +840,7 @@ class MenuRepository {
         'description': description,
         'category_id': categoryId,
         'image': finalImageUrl,
+        'is_active': true,
         'created_at': DateTime.now().toIso8601String(),
       }).select();
 
@@ -873,16 +884,187 @@ class MenuRepository {
     }
   }
 
-  /// 🔹 Delete a menu item by ID
+  /// 🔹 Soft delete a menu item by ID (sets is_active = false)
   Future<void> deleteMenuItem(int id) async {
     try {
-      print('🗑️ Deleting menu item with ID: $id');
-      await _supabase.from('items').delete().eq('id', id);
-      print('✅ Menu item deleted successfully!');
+      print('🗑️ Archiving menu item with ID: $id');
+      await _supabase
+          .from('items')
+          .update({'is_active': false})
+          .eq('id', id);
+      print('✅ Menu item archived successfully!');
     } catch (e, stack) {
-      print('❌ Error deleting menu item: $e');
+      print('❌ Error archiving menu item: $e');
       print(stack);
       rethrow;
+    }
+  }
+
+  /// 🔹 Toggle is_active status of a menu item
+  Future<void> toggleMenuItemActive(int id, bool isActive) async {
+    try {
+      print('🔄 Toggling menu item active status: ID=$id, isActive=$isActive');
+      await _supabase
+          .from('items')
+          .update({'is_active': isActive})
+          .eq('id', id);
+      print('✅ Menu item active status updated successfully!');
+    } catch (e, stack) {
+      print('❌ Error toggling menu item active status: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// 🔹 Fetch all archived menu items (where is_active = false)
+  Future<List<MenuItem>> getArchivedMenuItems() async {
+    try {
+      final response = await _supabase
+          .from('items')
+          .select('''
+      *,
+      category:category_id (id, name, image, created_at),
+      item_addons (
+        addon:addon_id (*)
+      ),
+      item_sizes (*)
+    ''')
+          .eq('is_active', false)
+          .order('created_at', ascending: false);
+
+      final items = (response as List).map((json) {
+        final map = Map<String, dynamic>.from(json);
+
+        // Flatten item_addons → addons
+        if (map['item_addons'] != null) {
+          map['addons'] = (map['item_addons'] as List)
+              .map((e) => e['addon'])
+              .where((a) => a != null)
+              .toList();
+        }
+
+        // Flatten item_sizes → sizes (all sizes)
+        if (map['item_sizes'] != null) {
+          map['sizes'] = (map['item_sizes'] as List).toList();
+        }
+
+        if (map['category'] != null) {
+          map['category_name'] = map['category']['name'];
+        }
+
+        return MenuItem.fromJson(map);
+      }).toList();
+
+      return items;
+    } catch (e, stack) {
+      print('❌ Error fetching archived menu items: $e');
+      print(stack);
+      return [];
+    }
+  }
+
+  /// 🔹 Fetch paginated archived menu items with optional category filter
+  Future<Map<String, dynamic>> getPaginatedArchivedMenuItems({
+    required int limit,
+    required int offset,
+    int? categoryId,
+  }) async {
+    try {
+      print(
+          '🔍 Fetching paginated archived items: limit=$limit, offset=$offset, categoryId=$categoryId');
+
+      // Build queries with proper filter chain
+      dynamic countQuery;
+      dynamic itemQuery;
+
+      if (categoryId != null) {
+        // With category filter
+        countQuery = _supabase
+            .from('items')
+            .select('id')
+            .eq('category_id', categoryId)
+            .eq('is_active', false);
+
+        itemQuery = _supabase
+            .from('items')
+            .select('''
+              *,
+              category:category_id (id, name, image, created_at),
+              item_addons (
+                addon:addon_id (*)
+              ),
+              item_sizes (*)
+            ''')
+            .eq('category_id', categoryId)
+            .eq('is_active', false)
+            .order('created_at', ascending: false)
+            .range(offset, offset + limit - 1);
+      } else {
+        // Without category filter
+        countQuery = _supabase
+            .from('items')
+            .select('id')
+            .eq('is_active', false);
+
+        itemQuery = _supabase
+            .from('items')
+            .select('''
+              *,
+              category:category_id (id, name, image, created_at),
+              item_addons (
+                addon:addon_id (*)
+              ),
+              item_sizes (*)
+            ''')
+            .eq('is_active', false)
+            .order('created_at', ascending: false)
+            .range(offset, offset + limit - 1);
+      }
+
+      // Get total count
+      final countResult = await countQuery;
+      final totalCount = (countResult as List).length;
+
+      // Execute item query
+      final itemsResponse = await itemQuery;
+
+      // Parse items
+      final items = (itemsResponse as List).map((json) {
+        final map = Map<String, dynamic>.from(json);
+
+        // Flatten item_addons → addons
+        if (map['item_addons'] != null) {
+          map['addons'] = (map['item_addons'] as List)
+              .map((e) => e['addon'])
+              .where((a) => a != null)
+              .toList();
+        }
+
+        // Flatten item_sizes → sizes (all sizes)
+        if (map['item_sizes'] != null) {
+          map['sizes'] = (map['item_sizes'] as List).toList();
+        }
+
+        if (map['category'] != null) {
+          map['category_name'] = map['category']['name'];
+        }
+
+        return MenuItem.fromJson(map);
+      }).toList();
+
+      print('✅ Fetched ${items.length} archived items (total: $totalCount)');
+
+      return {
+        'items': items,
+        'totalCount': totalCount,
+      };
+    } catch (e, stack) {
+      print('❌ Error fetching paginated archived menu items: $e');
+      print(stack);
+      return {
+        'items': <MenuItem>[],
+        'totalCount': 0,
+      };
     }
   }
 
@@ -897,6 +1079,7 @@ class MenuRepository {
     String? newImageUrl,
     List<Addon>? addons,
     List<ItemSize>? sizes,
+    bool? isActive,
   }) async {
     try {
       print('✏️ Updating menu item with ID: $itemId');
@@ -907,13 +1090,20 @@ class MenuRepository {
       }
 
       // 1️⃣ Update the main item fields
-      await _supabase.from('items').update({
+      final updateData = <String, dynamic>{
         'name': name,
         'price': price,
         'description': description.isEmpty ? null : description,
         'category_id': categoryId,
         'image': finalImageUrl,
-      }).eq('id', itemId);
+      };
+      
+      // Only update is_active if explicitly provided
+      if (isActive != null) {
+        updateData['is_active'] = isActive;
+      }
+
+      await _supabase.from('items').update(updateData).eq('id', itemId);
 
       // 2️⃣ Update addons: Delete old ones and insert new ones
       await _supabase.from('item_addons').delete().eq('item_id', itemId);

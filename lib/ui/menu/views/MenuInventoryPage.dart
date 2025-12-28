@@ -3,7 +3,9 @@ import 'package:adminshahrayar_stores/data/models/menu_item.dart';
 import 'package:adminshahrayar_stores/data/models/addon.dart';
 import 'package:adminshahrayar_stores/data/models/item_size.dart';
 import 'package:adminshahrayar_stores/data/models/storage_image.dart';
+import 'package:adminshahrayar_stores/main_screen.dart';
 import 'package:adminshahrayar_stores/ui/menu/viewmodels/menu_viemodel.dart';
+import 'package:adminshahrayar_stores/ui/menu/views/archived_items_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +26,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
 
   int? sortColumnIndex;
   bool isAscending = true;
+  int? _lastSelectedIndex;
 
   @override
   void initState() {
@@ -66,7 +69,9 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     bool ascending,
     List<MenuItem> items,
   ) {
-    items.sort((a, b) {
+    // Create a copy to avoid mutating the original list
+    final sortedItems = List<MenuItem>.from(items);
+    sortedItems.sort((a, b) {
       final aValue = getField(a);
       final bValue = getField(b);
       return ascending
@@ -77,6 +82,8 @@ class _MenuPageState extends ConsumerState<MenuPage> {
       sortColumnIndex = columnIndex;
       isAscending = ascending;
     });
+    // Note: The sorted list is not persisted - sorting is handled server-side
+    // This is just for UI feedback on which column is sorted
   }
 
   // ✅ Show details of a menu item
@@ -486,17 +493,22 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final List<Addon> addons = List.from(item?.addons ?? []);
     final List<ItemSize> sizes = List.from(item?.sizes ?? []);
 
-    final String? originalImageUrl =
-        (item?.image != null && item!.image.trim().isNotEmpty)
-            ? item.image
-            : null;
+    final String? originalImageUrl = (item?.image != null && 
+            item!.image.trim().isNotEmpty)
+        ? item.image
+        : null;
     String? workingImageUrl = originalImageUrl;
+    
+    // Track isActive status (default to true for new items)
+    bool workingIsActive = item?.isActive ?? true;
 
     // Find the initial selected category by ID (for editing) or set to first category (for adding)
     Category? initialSelectedCategory;
-    if (isEditing && item != null) {
+    if (isEditing) {
+      // isEditing is true means item is not null - Dart flow analysis understands this
+      final editingItem = item;
       initialSelectedCategory = categories.firstWhere(
-        (cat) => cat.id == item.categoryId,
+        (cat) => cat.id == editingItem.categoryId,
         orElse: () => categories.isNotEmpty ? categories.first : Category(
           id: 0,
           name: '',
@@ -726,6 +738,99 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                     return null;
                   },
                 ),
+                // Add isActive toggle switch (only show when editing)
+                if (isEditing) ...[
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Item Status',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            workingIsActive
+                                ? 'Item is currently active'
+                                : 'Item is currently archived',
+                            style: TextStyle(
+                              color: workingIsActive
+                                  ? Colors.green
+                                  : Colors.orange,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Switch(
+                        value: workingIsActive,
+                        onChanged: (bool newValue) async {
+                          // If trying to set to false (archive), show confirmation
+                          if (!newValue && workingIsActive) {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                backgroundColor: Colors.grey.shade900,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                title: const Text(
+                                  'Archive Item',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                content: const Text(
+                                  'Are you sure you want to archive this item? It will be moved to archived items and hidden from the main menu.',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, false),
+                                    child: const Text(
+                                      'Cancel',
+                                      style: TextStyle(color: Colors.white70),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                    child: const Text('Archive'),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              setState(() {
+                                workingIsActive = false;
+                              });
+                            }
+                          } else {
+                            // Setting to true (activate) - no confirmation needed
+                            setState(() {
+                              workingIsActive = newValue;
+                            });
+                          }
+                        },
+                        activeColor: Colors.green,
+                        inactiveThumbColor: Colors.orange,
+                        inactiveTrackColor: Colors.orange.withOpacity(0.5),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Colors.white24),
+                ],
                 const SizedBox(height: 16),
                 Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -783,40 +888,6 @@ class _MenuPageState extends ConsumerState<MenuPage> {
           ),
         ),
         actions: [
-          if (isEditing)
-            TextButton.icon(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                          backgroundColor: Colors.grey.shade900,
-                          title: const Text('Confirm Delete',
-                              style: TextStyle(color: Colors.white)),
-                          content: const Text(
-                              'Are you sure you want to delete this item?',
-                              style: TextStyle(color: Colors.white70)),
-                          actions: [
-                            TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel')),
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.redAccent),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Delete'))
-                          ],
-                        ));
-                if (confirm == true) {
-                  final viewModel = ref.read(menuViewModelProvider.notifier);
-                  await viewModel.deleteMenuItem(item.id);
-                  Navigator.pop(context);
-                  _loadPage(); // Refresh current page
-                }
-              },
-              icon: const Icon(Icons.delete, color: Colors.redAccent),
-              label: const Text('Delete',
-                  style: TextStyle(color: Colors.redAccent)),
-            ),
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel',
@@ -867,6 +938,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                       originalImageUrl: originalImageUrl,
                       addons: addons,
                       sizes: sizes,
+                      isActive: workingIsActive,
                     );
                   } else {
                     await viewModel.addMenuItem(
@@ -1829,6 +1901,18 @@ class _MenuPageState extends ConsumerState<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch the main screen index to detect when this page becomes visible
+    final currentIndex = ref.watch(mainScreenIndexProvider);
+    const menuInventoryIndex = 3; // Index of Menu & Inventory page
+
+    // Refresh when navigating to this page
+    if (currentIndex == menuInventoryIndex && _lastSelectedIndex != menuInventoryIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadPage();
+      });
+    }
+    _lastSelectedIndex = currentIndex;
+
     final menuState = ref.watch(menuViewModelProvider);
 
     return menuState.when(
@@ -1871,11 +1955,31 @@ class _MenuPageState extends ConsumerState<MenuPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Menu Management',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Menu Management',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ArchivedItemsPage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.archive),
+                      label: const Text('View Archived Items'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 Card(
                   color: Colors.grey.shade900,
@@ -1970,7 +2074,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                     height: 60,
                                     width: 60,
                                     fit: BoxFit.contain, // Fit entire image without cropping
-                                    errorBuilder: (_, __, ___) =>
+                                    errorBuilder: (_, __, ___) => 
                                         const Icon(Icons.image_not_supported, size: 24),
                                   ),
                                 ),

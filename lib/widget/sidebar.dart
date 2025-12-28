@@ -82,6 +82,12 @@ class Sidebar extends StatelessWidget {
                   onTap: () => onItemTapped(3),
                 ),
                 _SidebarLink(
+                  text: 'Archived Items',
+                  icon: Icons.archive,
+                  isSelected: selectedIndex == 10,
+                  onTap: () => onItemTapped(10),
+                ),
+                _SidebarLink(
                   text: 'Customers & Reviews',
                   icon: Icons.people,
                   isSelected: selectedIndex == 4,
