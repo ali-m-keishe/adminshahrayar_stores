@@ -3,12 +3,14 @@ class Category {
   final String name;
   final String image;
   final DateTime createdAt;
+  final int? position;
 
   Category({
     required this.id,
     required this.name,
     required this.image,
     required this.createdAt,
+    this.position,
   });
 
   // JSON serialization methods
@@ -26,6 +28,7 @@ class Category {
       name: json['name'] ?? '',
       image: json['image'] ?? '',
       createdAt: DateTime.parse(json['created_at']),
+      position: json['position'] != null ? (json['position'] is int ? json['position'] : int.tryParse(json['position'].toString())) : null,
     );
   }
 
@@ -35,6 +38,7 @@ class Category {
       'name': name,
       'image': image,
       'created_at': createdAt.toIso8601String(),
+      if (position != null) 'position': position,
     };
   }
 }

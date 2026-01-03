@@ -12,6 +12,8 @@ class MenuItem {
   final int categoryId;
   final DateTime createdAt;
   final bool isActive;
+  final int? position;
+  final String? arcNo; // ✅ Nullable
   final List<Addon>? addons; // ✅ Nullable
   final List<ItemSize>? sizes; // ✅ Nullable
 
@@ -24,6 +26,8 @@ class MenuItem {
     required this.categoryId,
     required this.createdAt,
     this.isActive = true,
+    this.position,
+    this.arcNo, // optional
     this.addons, // optional
     this.sizes, // optional
   });
@@ -39,6 +43,8 @@ class MenuItem {
       categoryId: json['category_id'] ?? 0,
       createdAt: DateTime.parse(json['created_at']),
       isActive: json['is_active'] ?? true,
+      position: json['position'] != null ? (json['position'] is int ? json['position'] : int.tryParse(json['position'].toString())) : null,
+      arcNo: json['arc_no'] as String?,
       addons: (json['addons'] != null && json['addons'] is List)
           ? (json['addons'] as List)
               .map((e) => Addon.fromJson(e))
@@ -63,6 +69,8 @@ class MenuItem {
       'category_id': categoryId,
       'created_at': createdAt.toIso8601String(),
       'is_active': isActive,
+      if (position != null) 'position': position,
+      if (arcNo != null && arcNo!.isNotEmpty) 'arc_no': arcNo,
       if (addons != null)
         'addons': addons!.map((e) => e.toJson()).toList(),
       if (sizes != null)

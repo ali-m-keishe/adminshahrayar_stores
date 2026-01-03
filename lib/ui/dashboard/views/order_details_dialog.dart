@@ -341,6 +341,15 @@ class OrderDetailsDialog extends ConsumerWidget {
             // 🔸 Quantity
             Text('Qty: ${item.cartItem.quantity}', style: textTheme.bodyMedium),
 
+            // 🔸 ArcNo (optional)
+            const SizedBox(height: 4),
+            Text(
+              'ArcNo: ${item.menuItem.arcNo != null && item.menuItem.arcNo!.isNotEmpty ? item.menuItem.arcNo! : '--'}',
+              style: textTheme.bodySmall?.copyWith(
+                color: Colors.white70,
+              ),
+            ),
+
             // 🔸 Size (if available)
             if (item.size != null) ...[
               const SizedBox(height: 4),
