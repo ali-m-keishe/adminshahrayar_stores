@@ -145,6 +145,8 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     required double price,
     required int categoryId,
     String? imageUrl,
+    int? position,
+    String? arcNo,
     List<Addon>? addons,
     List<ItemSize>? sizes,
   }) async {
@@ -155,6 +157,8 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
         price: price,
         categoryId: categoryId,
         imageUrl: imageUrl,
+        position: position,
+        arcNo: arcNo,
         addons: addons,
         sizes: sizes,
       );
@@ -176,6 +180,8 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     List<Addon>? addons,
     List<ItemSize>? sizes,
     bool? isActive,
+    int? position,
+    String? arcNo,
   }) async {
     try {
       await _menuRepository.updateMenuItem(
@@ -189,6 +195,8 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
         addons: addons,
         sizes: sizes,
         isActive: isActive,
+        position: position,
+        arcNo: arcNo,
       );
     } catch (e) {
       print("❌ Error editing menu item: $e");

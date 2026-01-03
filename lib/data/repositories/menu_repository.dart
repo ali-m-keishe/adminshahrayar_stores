@@ -402,6 +402,7 @@ class MenuRepository {
       final response = await _supabase
           .from('categories')
           .select('*')
+          .order('position', ascending: true)
           .order('created_at', ascending: false);
 
       print('✅ Categories fetched: ${response.length}');
@@ -492,24 +493,72 @@ class MenuRepository {
     }
   }
 
+  /// 🔹 Get the next available position for categories
+  Future<int> getNextCategoryPosition() async {
+    try {
+      final response = await _supabase
+          .from('categories')
+          .select('position')
+          .order('position', ascending: false)
+          .limit(1);
+
+      if (response.isEmpty || response[0]['position'] == null) {
+        return 1; // First category
+      }
+
+      final maxPosition = response[0]['position'] as int;
+      return maxPosition + 1;
+    } catch (e) {
+      print('❌ Error getting next category position: $e');
+      return 1; // Default to 1 on error
+    }
+  }
+
   // 🔹 Add a new category
   Future<void> addCategory(Category category) async {
     try {
       print('🟢 Adding new category: ${category.name}');
 
+      // If position is not provided, get the next available position
+      int? finalPosition = category.position;
+      if (finalPosition == null) {
+        finalPosition = await getNextCategoryPosition();
+      }
+
       final data = {
         'name': category.name,
         'image': category.image,
         'created_at': category.createdAt.toIso8601String(),
+        'position': finalPosition,
         // don't include 'id' here
       };
 
+      // The database trigger will handle auto-incrementing positions
       await _supabase.from('categories').insert(data);
       print('✅ Category added successfully!');
     } catch (e, stack) {
       print('❌ Error adding category: $e');
       print(stack);
-      rethrow;
+      // If there's a unique constraint violation, try with auto-assigned position
+      if (e.toString().contains('duplicate key') || e.toString().contains('23505')) {
+        print('⚠️ Position conflict detected, retrying with auto-assigned position...');
+        try {
+          final autoPosition = await getNextCategoryPosition();
+          final data = {
+            'name': category.name,
+            'image': category.image,
+            'created_at': category.createdAt.toIso8601String(),
+            'position': autoPosition,
+          };
+          await _supabase.from('categories').insert(data);
+          print('✅ Category added successfully with auto-assigned position: $autoPosition');
+        } catch (retryError) {
+          print('❌ Error on retry: $retryError');
+          rethrow;
+        }
+      } else {
+        rethrow;
+      }
     }
   }
 
@@ -517,6 +566,7 @@ class MenuRepository {
   Future<void> updateCategory(Category category) async {
     try {
       print('✏️ Updating category ID: ${category.id}');
+      // The database trigger will handle position auto-increment logic
       await _supabase
           .from('categories')
           .update(category.toJson())
@@ -553,7 +603,7 @@ class MenuRepository {
         addon:addon_id (*)
       ),
       item_sizes (*)
-    ''').eq('is_active', true).order('created_at', ascending: false);
+    ''').eq('is_active', true).order('category_id', ascending: true).order('position', ascending: true).order('created_at', ascending: false);
 
       final items = (response as List).map((json) {
         final map = Map<String, dynamic>.from(json);
@@ -621,6 +671,7 @@ class MenuRepository {
             ''')
             .eq('category_id', categoryId)
             .eq('is_active', true)
+            .order('position', ascending: true)
             .order('created_at', ascending: false)
             .range(offset, offset + limit - 1);
       } else {
@@ -641,6 +692,8 @@ class MenuRepository {
               item_sizes (*)
             ''')
             .eq('is_active', true)
+            .order('category_id', ascending: true)
+            .order('position', ascending: true)
             .order('created_at', ascending: false)
             .range(offset, offset + limit - 1);
       }
@@ -818,6 +871,28 @@ class MenuRepository {
     }
   }
 
+  /// 🔹 Get the next available position for a category
+  Future<int> getNextPositionForCategory(int categoryId) async {
+    try {
+      final response = await _supabase
+          .from('items')
+          .select('position')
+          .eq('category_id', categoryId)
+          .order('position', ascending: false)
+          .limit(1);
+
+      if (response.isEmpty || response[0]['position'] == null) {
+        return 1; // First item in category
+      }
+
+      final maxPosition = response[0]['position'] as int;
+      return maxPosition + 1;
+    } catch (e) {
+      print('❌ Error getting next position: $e');
+      return 1; // Default to 1 on error
+    }
+  }
+
   /// 🔹 Add a new menu item (with optional addons and sizes)
   Future<void> addMenuItem({
     required String name,
@@ -825,6 +900,8 @@ class MenuRepository {
     required double price,
     required int categoryId,
     String? imageUrl,
+    int? position,
+    String? arcNo,
     List<Addon>? addons,
     List<ItemSize>? sizes,
   }) async {
@@ -832,8 +909,18 @@ class MenuRepository {
       print('🟢 Adding new menu item: $name');
 
       final String finalImageUrl = imageUrl?.trim() ?? '';
+       // ArcNo is optional; trim and allow null
+      final String? finalArcNo =
+          (arcNo != null && arcNo.trim().isNotEmpty) ? arcNo.trim() : null;
+
+      // If position is not provided, get the next available position
+      int? finalPosition = position;
+      if (finalPosition == null) {
+        finalPosition = await getNextPositionForCategory(categoryId);
+      }
 
       // 1️⃣ Insert the main menu item
+      // The database trigger will handle auto-incrementing positions
       final response = await _supabase.from('items').insert({
         'name': name,
         'price': price,
@@ -841,6 +928,8 @@ class MenuRepository {
         'category_id': categoryId,
         'image': finalImageUrl,
         'is_active': true,
+        'position': finalPosition,
+        'arc_no': finalArcNo,
         'created_at': DateTime.now().toIso8601String(),
       }).select();
 
@@ -930,6 +1019,8 @@ class MenuRepository {
       item_sizes (*)
     ''')
           .eq('is_active', false)
+          .order('category_id', ascending: true)
+          .order('position', ascending: true)
           .order('created_at', ascending: false);
 
       final items = (response as List).map((json) {
@@ -997,6 +1088,7 @@ class MenuRepository {
             ''')
             .eq('category_id', categoryId)
             .eq('is_active', false)
+            .order('position', ascending: true)
             .order('created_at', ascending: false)
             .range(offset, offset + limit - 1);
       } else {
@@ -1017,6 +1109,8 @@ class MenuRepository {
               item_sizes (*)
             ''')
             .eq('is_active', false)
+            .order('category_id', ascending: true)
+            .order('position', ascending: true)
             .order('created_at', ascending: false)
             .range(offset, offset + limit - 1);
       }
@@ -1080,6 +1174,8 @@ class MenuRepository {
     List<Addon>? addons,
     List<ItemSize>? sizes,
     bool? isActive,
+    int? position,
+    String? arcNo,
   }) async {
     try {
       print('✏️ Updating menu item with ID: $itemId');
@@ -1101,6 +1197,18 @@ class MenuRepository {
       // Only update is_active if explicitly provided
       if (isActive != null) {
         updateData['is_active'] = isActive;
+      }
+      
+      // Only update position if explicitly provided
+      // The database trigger will handle auto-incrementing other items
+      if (position != null) {
+        updateData['position'] = position;
+      }
+
+      // Optional ArcNo update
+      if (arcNo != null) {
+        updateData['arc_no'] =
+            arcNo.trim().isEmpty ? null : arcNo.trim();
       }
 
       await _supabase.from('items').update(updateData).eq('id', itemId);

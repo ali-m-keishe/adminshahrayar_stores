@@ -26,6 +26,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
 
   int? sortColumnIndex;
   bool isAscending = true;
+  String searchQuery = '';
   int? _lastSelectedIndex;
 
   @override
@@ -181,6 +182,8 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final isEditing = category != null;
     final nameController = TextEditingController(text: category?.name ?? '');
     final imageController = TextEditingController(text: category?.image ?? '');
+    final positionController = TextEditingController(
+        text: category?.position != null ? category!.position.toString() : '');
 
     showDialog(
       context: context,
@@ -207,6 +210,19 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   decoration: const InputDecoration(
                       labelText: 'Image URL',
                       labelStyle: TextStyle(color: Colors.white70))),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: positionController,
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                      labelText: 'Position (Order)',
+                      hintText: 'Leave empty for auto-assignment',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      helperText: 'Unique position number for category ordering'),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ]),
             ],
           ),
           actions: [
@@ -251,11 +267,16 @@ class _MenuPageState extends ConsumerState<MenuPage> {
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
+                final positionText = positionController.text.trim();
+                final position = positionText.isNotEmpty
+                    ? int.tryParse(positionText)
+                    : null;
                 final newCategory = Category(
                     id: isEditing ? category.id : 0,
                     name: name,
                     image: imageController.text.trim(),
-                    createdAt: isEditing ? category.createdAt : DateTime.now());
+                    createdAt: isEditing ? category.createdAt : DateTime.now(),
+                    position: position);
                 final viewModel = ref.read(menuViewModelProvider.notifier);
                 if (isEditing) {
                   await viewModel.editCategory(newCategory);
@@ -485,6 +506,10 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final descController = TextEditingController(text: item?.description ?? '');
     final priceController =
         TextEditingController(text: item?.price.toString() ?? '');
+    final positionController = TextEditingController(
+        text: item?.position != null ? item!.position.toString() : '');
+    final arcNoController =
+        TextEditingController(text: item?.arcNo ?? '');
     
     // Get categories from the menu state
     final menuState = ref.read(menuViewModelProvider);
@@ -552,6 +577,14 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                         labelText: 'Price',
+                        labelStyle: TextStyle(color: Colors.white70))),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: arcNoController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                        labelText: 'ArcNo (optional)',
+                        helperText: 'Internal item ID used for admin search',
                         labelStyle: TextStyle(color: Colors.white70))),
                 // In _showAddEditMenuItemDialog method, replace the image section with this:
 
@@ -738,6 +771,19 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+                TextField(
+                    controller: positionController,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Position (Order)',
+                        hintText: 'Leave empty for auto-assignment',
+                        labelStyle: TextStyle(color: Colors.white70),
+                        helperText: 'Position within the selected category. Items with lower positions appear first.'),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ]),
                 // Add isActive toggle switch (only show when editing)
                 if (isEditing) ...[
                   const SizedBox(height: 16),
@@ -907,6 +953,13 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   final name = nameController.text.trim();
                   final description = descController.text.trim();
                   final price = double.tryParse(priceController.text) ?? 0;
+                  final positionText = positionController.text.trim();
+                  final position = positionText.isNotEmpty
+                      ? int.tryParse(positionText)
+                      : null;
+                  final arcNoText = arcNoController.text.trim();
+                  final arcNo =
+                      arcNoText.isNotEmpty ? arcNoText : null;
                   
                   // Get category ID from selected category
                   final categoryId = selectedCategory?.id ?? 0;
@@ -939,6 +992,8 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                       addons: addons,
                       sizes: sizes,
                       isActive: workingIsActive,
+                      position: position,
+                      arcNo: arcNo,
                     );
                   } else {
                     await viewModel.addMenuItem(
@@ -947,6 +1002,8 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                       price: price,
                       categoryId: categoryId,
                       imageUrl: workingImageUrl,
+                      position: position,
+                      arcNo: arcNo,
                       addons: addons,
                       sizes: sizes,
                     );
@@ -1921,6 +1978,15 @@ class _MenuPageState extends ConsumerState<MenuPage> {
         final items = state.menuItems;
         final totalCount = state.totalMenuItemsCount;
 
+        // Local search filter (by name or ArcNo)
+        final filteredItems = searchQuery.isEmpty
+            ? items
+            : items.where((item) {
+                final name = item.name.toLowerCase();
+                final arc = item.arcNo?.toLowerCase() ?? '';
+                return name.contains(searchQuery) || arc.contains(searchQuery);
+              }).toList();
+
         // Calculate total pages based on server-side count
         final totalPages = (totalCount / itemsPerPage).ceil().clamp(1, 999999);
 
@@ -1980,6 +2046,18 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Search by name or ArcNo',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value.trim().toLowerCase();
+                    });
+                  },
+                ),
                 const SizedBox(height: 24),
                 Card(
                   color: Colors.grey.shade900,
@@ -2034,11 +2112,11 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                         DataColumn(
                             label: const Text('Name'),
                             onSort: (i, a) =>
-                                _sort((e) => e.name, i, a, items)),
+                                _sort((e) => e.name, i, a, filteredItems)),
                         DataColumn(
                             label: const Text('Price'),
                             onSort: (i, a) =>
-                                _sort((e) => e.price, i, a, items)),
+                                _sort((e) => e.price, i, a, filteredItems)),
                         DataColumn(
                             label: const Text('Category'),
                             onSort: (i, a) => _sort(
@@ -2048,11 +2126,11 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                     .name,
                                 i,
                                 a,
-                                items)),
+                                filteredItems)),
                         const DataColumn(label: Text('Addons')),
                         const DataColumn(label: Text('Sizes')),
                       ],
-                      rows: items.map((item) {
+                      rows: filteredItems.map((item) {
                         return DataRow(cells: [
                           DataCell(
                             Container(
