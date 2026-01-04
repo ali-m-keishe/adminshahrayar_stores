@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:adminshahrayar_stores/data/models/MenuInventoryState.dart';
 import 'package:adminshahrayar_stores/data/models/category.dart';
 import 'package:adminshahrayar_stores/data/models/menu_item.dart';
-import 'package:adminshahrayar_stores/data/models/addon.dart';
-import 'package:adminshahrayar_stores/data/models/item_size.dart';
+import 'package:adminshahrayar_stores/data/models/attribute.dart';
+import 'package:adminshahrayar_stores/data/models/attribute_value.dart';
 import 'package:adminshahrayar_stores/data/models/storage_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:adminshahrayar_stores/data/repositories/menu_repository.dart';
@@ -20,17 +20,17 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     return _loadMenuData();
   }
 
-  /// 🔹 Load all menu data (categories + items + addons) - Used for initial load
+  /// 🔹 Load all menu data (categories + items + attributes) - Used for initial load
   Future<Menuinventorystate> _loadMenuData() async {
     try {
       final categories = await _menuRepository.getAllCategories();
       final menuItems = await _menuRepository.getAllMenuItems();
-      final addons = await _menuRepository.getAllAddons();
+      final attributes = await _menuRepository.getAllAttributes();
 
       return Menuinventorystate(
         categories: categories,
         menuItems: menuItems,
-        addons: addons,
+        attributes: attributes,
         totalMenuItemsCount: menuItems.length,
       );
     } catch (e, stack) {
@@ -40,7 +40,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
       return Menuinventorystate(
         categories: const [],
         menuItems: const [],
-        addons: const [],
+        attributes: const [],
         totalMenuItemsCount: 0,
       );
     }
@@ -81,23 +81,23 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     }
   }
 
-  /// 🔹 Refresh categories and addons (without affecting current pagination)
-  Future<void> refreshCategoriesAndAddons() async {
+  /// 🔹 Refresh categories and attributes (without affecting current pagination)
+  Future<void> refreshCategoriesAndAttributes() async {
     try {
       final currentState = state.value;
       if (currentState == null) return;
 
       final categories = await _menuRepository.getAllCategories();
-      final addons = await _menuRepository.getAllAddons();
+      final attributes = await _menuRepository.getAllAttributes();
 
       state = AsyncValue.data(
         currentState.copyWith(
           categories: categories,
-          addons: addons,
+          attributes: attributes,
         ),
       );
     } catch (e, stack) {
-      print("❌ Error refreshing categories and addons: $e");
+      print("❌ Error refreshing categories and attributes: $e");
       print(stack);
     }
   }
@@ -106,7 +106,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
   Future<void> addCategory(Category category) async {
     try {
       await _menuRepository.addCategory(category);
-      await refreshCategoriesAndAddons(); // refresh categories only
+      await refreshCategoriesAndAttributes(); // refresh categories only
     } catch (e) {
       print("❌ Error adding category: $e");
     }
@@ -116,7 +116,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
   Future<void> editCategory(Category category) async {
     try {
       await _menuRepository.updateCategory(category);
-      await refreshCategoriesAndAddons(); // refresh categories only
+      await refreshCategoriesAndAttributes(); // refresh categories only
     } catch (e) {
       print("❌ Error editing category: $e");
     }
@@ -125,7 +125,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
   Future<void> deleteCategory(int categoryId) async {
     try {
       await _menuRepository.deleteCategory(categoryId);
-      await refreshCategoriesAndAddons(); // refresh categories only
+      await refreshCategoriesAndAttributes(); // refresh categories only
     } catch (e, st) {
       print("❌ Error deleting category: $e");
       state = AsyncValue.error(e, st);
@@ -147,8 +147,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     String? imageUrl,
     int? position,
     String? arcNo,
-    List<Addon>? addons,
-    List<ItemSize>? sizes,
+    List<int>? attributeIds, // List of attribute IDs to link
   }) async {
     try {
       await _menuRepository.addMenuItem(
@@ -159,8 +158,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
         imageUrl: imageUrl,
         position: position,
         arcNo: arcNo,
-        addons: addons,
-        sizes: sizes,
+        attributeIds: attributeIds,
       );
     } catch (e) {
       print("❌ Error adding menu item: $e");
@@ -177,8 +175,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     required int categoryId,
     String? imageUrl,
     String? originalImageUrl,
-    List<Addon>? addons,
-    List<ItemSize>? sizes,
+    List<int>? attributeIds, // List of attribute IDs to link
     bool? isActive,
     int? position,
     String? arcNo,
@@ -192,8 +189,7 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
         categoryId: categoryId,
         existingImageUrl: originalImageUrl,
         newImageUrl: imageUrl,
-        addons: addons,
-        sizes: sizes,
+        attributeIds: attributeIds,
         isActive: isActive,
         position: position,
         arcNo: arcNo,
@@ -260,23 +256,91 @@ class MenuViewmodel extends AsyncNotifier<Menuinventorystate> {
     }
   }
 
-  // 🔹 Add Addon
-  Future<void> addAddon(Addon addon) async {
+  // ========== ATTRIBUTE METHODS ==========
+
+  /// 🔹 Get all attributes
+  Future<List<Attribute>> getAllAttributes() async {
     try {
-      await _menuRepository.addAddon(addon);
-      await refreshCategoriesAndAddons(); // refresh addons only
+      return await _menuRepository.getAllAttributes();
     } catch (e) {
-      print("❌ Error adding addon: $e");
+      print("❌ Error fetching attributes: $e");
+      rethrow;
     }
   }
 
-  // 🔹 Delete Addon
-  Future<void> deleteAddon(int addonId) async {
+  /// 🔹 Add Attribute and return the created attribute with ID
+  Future<Attribute> addAttribute(Attribute attribute) async {
     try {
-      await _menuRepository.deleteAddon(addonId);
-      await refreshCategoriesAndAddons(); // refresh addons only
+      final createdAttribute = await _menuRepository.addAttribute(attribute);
+      await refreshCategoriesAndAttributes();
+      return createdAttribute;
     } catch (e) {
-      print("❌ Error deleting addon: $e");
+      print("❌ Error adding attribute: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Update Attribute
+  Future<void> updateAttribute(Attribute attribute) async {
+    try {
+      await _menuRepository.updateAttribute(attribute);
+      await refreshCategoriesAndAttributes();
+    } catch (e) {
+      print("❌ Error updating attribute: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Delete Attribute
+  Future<void> deleteAttribute(int attributeId) async {
+    try {
+      await _menuRepository.deleteAttribute(attributeId);
+      await refreshCategoriesAndAttributes();
+    } catch (e) {
+      print("❌ Error deleting attribute: $e");
+      rethrow;
+    }
+  }
+
+  // ========== ATTRIBUTE VALUE METHODS ==========
+
+  /// 🔹 Get attribute values for an attribute
+  Future<List<AttributeValue>> getAttributeValues(int attributeId) async {
+    try {
+      return await _menuRepository.getAttributeValues(attributeId);
+    } catch (e) {
+      print("❌ Error fetching attribute values: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Add Attribute Value
+  Future<void> addAttributeValue(AttributeValue attributeValue) async {
+    try {
+      await _menuRepository.addAttributeValue(attributeValue);
+    } catch (e) {
+      print("❌ Error adding attribute value: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Update Attribute Value
+  Future<void> updateAttributeValue(AttributeValue attributeValue) async {
+    try {
+      await _menuRepository.updateAttributeValue(attributeValue);
+    } catch (e) {
+      print("❌ Error updating attribute value: $e");
+      rethrow;
+    }
+  }
+
+  /// 🔹 Delete Attribute Value
+  Future<void> deleteAttributeValue(int attributeValueId) async {
+    try {
+      await _menuRepository.deleteAttributeValue(attributeValueId);
+    } catch (e) {
+      print("❌ Error deleting attribute value: $e");
+      rethrow;
     }
   }
 

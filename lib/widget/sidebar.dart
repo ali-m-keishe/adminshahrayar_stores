@@ -1,7 +1,9 @@
 import 'package:adminshahrayar_stores/main.dart';
+import 'package:adminshahrayar_stores/ui/auth/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Sidebar extends StatelessWidget {
+class Sidebar extends ConsumerWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
 
@@ -12,7 +14,7 @@ class Sidebar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -88,6 +90,12 @@ class Sidebar extends StatelessWidget {
                   onTap: () => onItemTapped(10),
                 ),
                 _SidebarLink(
+                  text: 'Attributes',
+                  icon: Icons.category,
+                  isSelected: selectedIndex == 11,
+                  onTap: () => onItemTapped(11),
+                ),
+                _SidebarLink(
                   text: 'Customers & Reviews',
                   icon: Icons.people,
                   isSelected: selectedIndex == 4,
@@ -120,15 +128,36 @@ class Sidebar extends StatelessWidget {
               ],
             ),
           ),
-          _buildUserProfile(context),
+          _buildUserProfile(context, ref),
+          // Logout button
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final authViewModel = ref.read(authViewModelProvider.notifier);
+                await authViewModel.signOut();
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildUserProfile(BuildContext context) {
+  Widget _buildUserProfile(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final authState = ref.watch(authViewModelProvider);
+    
+    final userEmail = authState.userEmail ?? 'Admin';
+    final displayName = userEmail.split('@').first; // Get name part before @
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -140,17 +169,24 @@ class Sidebar extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const CircleAvatar(child: Text('A')),
+            CircleAvatar(
+              child: Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : 'A'),
+            ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Alex Morgan',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    displayName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Text('Admin', style: TextStyle(color: Colors.grey)),
+                  Text(
+                    authState.isAdmin ? 'Admin' : 'User',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             ),

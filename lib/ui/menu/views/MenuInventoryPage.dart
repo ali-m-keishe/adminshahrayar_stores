@@ -1,7 +1,5 @@
 import 'package:adminshahrayar_stores/data/models/category.dart';
 import 'package:adminshahrayar_stores/data/models/menu_item.dart';
-import 'package:adminshahrayar_stores/data/models/addon.dart';
-import 'package:adminshahrayar_stores/data/models/item_size.dart';
 import 'package:adminshahrayar_stores/data/models/storage_image.dart';
 import 'package:adminshahrayar_stores/main_screen.dart';
 import 'package:adminshahrayar_stores/ui/menu/viewmodels/menu_viemodel.dart';
@@ -139,28 +137,16 @@ class _MenuPageState extends ConsumerState<MenuPage> {
               const SizedBox(height: 8),
               Text('Category ID: ${item.categoryId}',
                   style: const TextStyle(color: Colors.white70)),
-              if (item.addons != null && item.addons!.isNotEmpty) ...[
+              if (item.attributes != null && item.attributes!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 const Divider(color: Colors.white24),
-                const Text('Addons:',
+                const Text('Attributes:',
                     style: TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.white)),
-                ...item.addons!.map((a) => Padding(
-                      padding: const EdgeInsets.only(left: 8, top: 4),
-                      child: Text('- ${a.name} (\$${a.price})',
-                          style: const TextStyle(color: Colors.white70)),
-                    )),
-              ],
-              if (item.sizes != null && item.sizes!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Divider(color: Colors.white24),
-                const Text('Sizes:',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white)),
-                ...item.sizes!.map((s) => Padding(
+                ...item.attributes!.map((attr) => Padding(
                       padding: const EdgeInsets.only(left: 8, top: 4),
                       child: Text(
-                          '- ${s.sizeName} (+\$${s.additionalPrice.toStringAsFixed(2)})',
+                          '- ${attr.name} (${attr.type}) ${attr.isRequired ? "[Required]" : ""}',
                           style: const TextStyle(color: Colors.white70)),
                     )),
               ]
@@ -293,211 +279,8 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     );
   }
 
-  // ✅ Addon dialog (Add/Delete only, no editing)
-  void _showAddAddonDialog(BuildContext context) async {
-    final menuState = ref.read(menuViewModelProvider);
-
-    await menuState.whenOrNull(
-      data: (state) async {
-        final addons = state.addons;
-
-        showDialog(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            backgroundColor: Colors.grey.shade900,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: const Text('Manage Addons',
-                style: TextStyle(color: Colors.white)),
-            content: SizedBox(
-              width: 400,
-              height: 400,
-              child: Column(
-                children: [
-                  // Add new addon section
-                  Card(
-                    color: Colors.grey.shade800,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Add New Addon',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(dialogContext);
-                              _showCreateAddonDialog(context);
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create Addon'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 8),
-                  // Existing addons list
-                  const Text('Existing Addons',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: addons.isEmpty
-                        ? const Center(
-                            child: Text('No addons available',
-                                style: TextStyle(color: Colors.white70)))
-                        : ListView.builder(
-                            itemCount: addons.length,
-                            itemBuilder: (context, index) {
-                              final addon = addons[index];
-                              return Card(
-                                color: Colors.grey.shade800,
-                                child: ListTile(
-                                  title: Text(addon.name,
-                                      style:
-                                          const TextStyle(color: Colors.white)),
-                                  subtitle: Text(
-                                      '\$${addon.price.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                          color: Colors.white70)),
-                                  trailing: IconButton(
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                          context: dialogContext,
-                                          builder: (_) => AlertDialog(
-                                                backgroundColor:
-                                                    Colors.grey.shade900,
-                                                title: const Text(
-                                                    'Confirm Delete',
-                                                    style: TextStyle(
-                                                        color: Colors.white)),
-                                                content: Text(
-                                                    'Are you sure you want to delete "${addon.name}"?',
-                                                    style: const TextStyle(
-                                                        color: Colors.white70)),
-                                                actions: [
-                                                  TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, false),
-                                                      child:
-                                                          const Text('Cancel')),
-                                                  ElevatedButton(
-                                                      style: ElevatedButton
-                                                          .styleFrom(
-                                                              backgroundColor:
-                                                                  Colors
-                                                                      .redAccent),
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, true),
-                                                      child:
-                                                          const Text('Delete'))
-                                                ],
-                                              ));
-                                      if (confirm == true) {
-                                        final viewModel = ref.read(
-                                            menuViewModelProvider.notifier);
-                                        await viewModel.deleteAddon(addon.id);
-                                        Navigator.pop(dialogContext);
-                                      }
-                                    },
-                                    icon: const Icon(Icons.delete,
-                                        color: Colors.redAccent),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child:
-                    const Text('Close', style: TextStyle(color: Colors.blue)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ✅ Create new addon dialog
-  void _showCreateAddonDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Create New Addon',
-            style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                    labelText: 'Addon Name',
-                    labelStyle: TextStyle(color: Colors.white70))),
-            const SizedBox(height: 12),
-            TextField(
-                controller: priceController,
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: 'Price',
-                    labelStyle: TextStyle(color: Colors.white70))),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.redAccent))),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final price = double.tryParse(priceController.text) ?? 0;
-
-              if (name.isEmpty || price <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter valid name and price'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-
-              final newAddon = Addon(
-                  id: 0, name: name, price: price, createdAt: DateTime.now());
-
-              final viewModel = ref.read(menuViewModelProvider.notifier);
-              await viewModel.addAddon(newAddon);
-              Navigator.pop(context);
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
+  // REMOVED: Addon management - now handled in Attributes page
+  // Attributes management is now in a separate page (AttributesPage)
 
   // ✅ MODIFIED: Add/Edit Menu Item dialog with Supabase image picker
   void _showAddEditMenuItemDialog(BuildContext context, {MenuItem? item}) {
@@ -515,8 +298,8 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     final menuState = ref.read(menuViewModelProvider);
     final categories = menuState.value?.categories ?? [];
 
-    final List<Addon> addons = List.from(item?.addons ?? []);
-    final List<ItemSize> sizes = List.from(item?.sizes ?? []);
+    // Get selected attribute IDs from the item
+    final Set<int> selectedAttributeIds = item?.attributes?.map((a) => a.id).toSet() ?? {};
 
     final String? originalImageUrl = (item?.image != null && 
             item!.image.trim().isNotEmpty)
@@ -881,54 +664,53 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                 Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Addons',
+                      const Text('Attributes',
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold)),
                       IconButton(
                           onPressed: () {
-                            _showSelectAddonsDialog(context, (a) {
-                              setState(() => addons.add(a));
+                            _showSelectAttributesDialog(context, (attributeId) {
+                              setState(() => selectedAttributeIds.add(attributeId));
                             });
                           },
                           icon: const Icon(Icons.add, color: Colors.blueAccent))
                     ]),
-                ...addons.map((a) => ListTile(
-                      title: Text(a.name,
-                          style: const TextStyle(color: Colors.white)),
-                      subtitle: Text('\$${a.price}',
-                          style: const TextStyle(color: Colors.white70)),
-                      trailing: IconButton(
-                          onPressed: () => setState(() => addons.remove(a)),
-                          icon: const Icon(Icons.delete,
-                              color: Colors.redAccent)),
-                    )),
-                const Divider(color: Colors.white24),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Sizes',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
-                      IconButton(
-                          onPressed: () {
-                            _showAddSizeDialog(context, (s) {
-                              setState(() => sizes.add(s));
-                            });
-                          },
-                          icon: const Icon(Icons.add, color: Colors.blueAccent))
-                    ]),
-                ...sizes.map((s) => ListTile(
-                      title: Text(s.sizeName,
-                          style: const TextStyle(color: Colors.white)),
-                      subtitle: Text('+\$${s.additionalPrice}',
-                          style: const TextStyle(color: Colors.white70)),
-                      trailing: IconButton(
-                          onPressed: () => setState(() => sizes.remove(s)),
-                          icon: const Icon(Icons.delete,
-                              color: Colors.redAccent)),
-                    )),
+                // Display selected attributes
+                Builder(
+                  builder: (context) {
+                    final menuState = ref.read(menuViewModelProvider);
+                    final allAttributes = menuState.value?.attributes ?? [];
+                    final selectedAttributes = allAttributes
+                        .where((attr) => selectedAttributeIds.contains(attr.id))
+                        .toList();
+                    
+                    if (selectedAttributes.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                          'No attributes selected',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      children: selectedAttributes.map((attr) => ListTile(
+                        title: Text(attr.name,
+                            style: const TextStyle(color: Colors.white)),
+                        subtitle: Text(
+                          '${attr.type} ${attr.isRequired ? "[Required]" : ""}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        trailing: IconButton(
+                          onPressed: () => setState(() => selectedAttributeIds.remove(attr.id)),
+                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        ),
+                      )).toList(),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -989,8 +771,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                       itemId: item.id,
                       imageUrl: hasNewImage ? workingImageUrl : null,
                       originalImageUrl: originalImageUrl,
-                      addons: addons,
-                      sizes: sizes,
+                      attributeIds: selectedAttributeIds.toList(),
                       isActive: workingIsActive,
                       position: position,
                       arcNo: arcNo,
@@ -1004,8 +785,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                       imageUrl: workingImageUrl,
                       position: position,
                       arcNo: arcNo,
-                      addons: addons,
-                      sizes: sizes,
+                      attributeIds: selectedAttributeIds.toList(),
                     );
                   }
 
@@ -1839,52 +1619,53 @@ class _MenuPageState extends ConsumerState<MenuPage> {
   }
 
 
-  void _showSelectAddonsDialog(
-      BuildContext context, Function(Addon) onAdd) async {
+  void _showSelectAttributesDialog(
+      BuildContext context, Function(int) onAdd) async {
     final menuState = ref.read(menuViewModelProvider);
 
-    // Get addons from the current state
-    final allAddons = menuState.value?.addons ?? [];
+    // Get attributes from the current state
+    final allAttributes = menuState.value?.attributes ?? [];
 
-    // Set to track selected addons
-    final selectedAddons = <Addon>{};
+    // Set to track selected attribute IDs
+    final selectedAttributeIds = <int>{};
 
     showDialog(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
               builder: (context, setState) => AlertDialog(
                 backgroundColor: Colors.grey.shade900,
-                title: const Text('Select Addons',
+                title: const Text('Select Attributes',
                     style: TextStyle(color: Colors.white)),
                 content: SizedBox(
                   width: 300,
                   height: 400,
-                  child: allAddons.isEmpty
+                  child: allAttributes.isEmpty
                       ? const Center(
-                          child: Text('No addons available',
+                          child: Text('No attributes available. Create attributes first.',
                               style: TextStyle(color: Colors.white70)))
                       : ListView.builder(
-                          itemCount: allAddons.length,
+                          itemCount: allAttributes.length,
                           itemBuilder: (context, index) {
-                            final addon = allAddons[index];
-                            final isSelected = selectedAddons.contains(addon);
+                            final attribute = allAttributes[index];
+                            final isSelected = selectedAttributeIds.contains(attribute.id);
 
                             return CheckboxListTile(
                               value: isSelected,
                               onChanged: (checked) {
                                 setState(() {
                                   if (checked == true) {
-                                    selectedAddons.add(addon);
+                                    selectedAttributeIds.add(attribute.id);
                                   } else {
-                                    selectedAddons.remove(addon);
+                                    selectedAttributeIds.remove(attribute.id);
                                   }
                                 });
                               },
-                              title: Text(addon.name,
+                              title: Text(attribute.name,
                                   style: const TextStyle(color: Colors.white)),
-                              subtitle: Text('\$${addon.price}',
-                                  style:
-                                      const TextStyle(color: Colors.white70)),
+                              subtitle: Text(
+                                '${attribute.type} ${attribute.isRequired ? "[Required]" : ""}',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
                             );
                           },
                         ),
@@ -1897,9 +1678,9 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // Add all selected addons
-                      for (final addon in selectedAddons) {
-                        onAdd(addon);
+                      // Add all selected attributes
+                      for (final attributeId in selectedAttributeIds) {
+                        onAdd(attributeId);
                       }
                       Navigator.pop(dialogContext);
                     },
@@ -1907,52 +1688,6 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   ),
                 ],
               ),
-            ));
-  }
-
-  void _showAddSizeDialog(BuildContext context, Function(ItemSize) onAdd) {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-    showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-              backgroundColor: Colors.grey.shade900,
-              title:
-                  const Text('Add Size', style: TextStyle(color: Colors.white)),
-              content: Column(mainAxisSize: MainAxisSize.min, children: [
-                TextField(
-                    controller: nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                        labelText: 'Size Name',
-                        labelStyle: TextStyle(color: Colors.white70))),
-                TextField(
-                    controller: priceController,
-                    style: const TextStyle(color: Colors.white),
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: 'Additional Price',
-                        labelStyle: TextStyle(color: Colors.white70))),
-              ]),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel',
-                        style: TextStyle(color: Colors.redAccent))),
-                ElevatedButton(
-                    onPressed: () {
-                      final size = ItemSize(
-                          id: 0,
-                          sizeName: nameController.text.trim(),
-                          additionalPrice:
-                              double.tryParse(priceController.text) ?? 0,
-                          itemId: 0,
-                          createdAt: DateTime.now());
-                      onAdd(size);
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Add'))
-              ],
             ));
   }
 
@@ -2008,12 +1743,6 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                 onPressed: () => _showAddEditCategoryDialog(context),
               ),
               const SizedBox(height: 12),
-              FloatingActionButton.extended(
-                backgroundColor: Colors.orange,
-                icon: const Icon(Icons.restaurant_menu),
-                label: const Text('Manage Addons'),
-                onPressed: () => _showAddAddonDialog(context),
-              ),
             ],
           ),
           body: SingleChildScrollView(
@@ -2127,8 +1856,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                                 i,
                                 a,
                                 filteredItems)),
-                        const DataColumn(label: Text('Addons')),
-                        const DataColumn(label: Text('Sizes')),
+                        const DataColumn(label: Text('Attributes')),
                       ],
                       rows: filteredItems.map((item) {
                         return DataRow(cells: [
@@ -2174,8 +1902,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                               .firstWhere((cat) => cat.id == item.categoryId,
                                   orElse: () => state.categories.first)
                               .name)),
-                          DataCell(Text(item.addons?.length.toString() ?? '0')),
-                          DataCell(Text(item.sizes?.length.toString() ?? '0')),
+                          DataCell(Text(item.attributes?.length.toString() ?? '0')),
                         ]);
                       }).toList(),
                     ),

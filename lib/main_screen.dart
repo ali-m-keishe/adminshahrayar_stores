@@ -4,6 +4,7 @@ import 'package:adminshahrayar_stores/ui/dashboard/views/dashboard_page.dart';
 import 'package:adminshahrayar_stores/ui/delivery_driver/views/delivery_page.dart';
 import 'package:adminshahrayar_stores/ui/menu/views/MenuInventoryPage.dart';
 import 'package:adminshahrayar_stores/ui/menu/views/archived_items_page.dart';
+import 'package:adminshahrayar_stores/ui/menu/views/attributes_page.dart';
 import 'package:adminshahrayar_stores/ui/notifications/views/send_notification.dart';
 import 'package:adminshahrayar_stores/ui/orders/views/all_orders_page.dart';
 import 'package:adminshahrayar_stores/ui/promotions/views/promotions_page.dart';
@@ -37,6 +38,7 @@ class MainScreen extends ConsumerWidget {
       const AllOrdersPage(), // Index 8
       const SendNotificationPage(), // Index 9
       const ArchivedItemsPage(), // Index 10
+      const AttributesPage(), // Index 11
     ].map((page) => page ?? Container()).toList();
     ;
 

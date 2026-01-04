@@ -148,28 +148,16 @@ class _ArchivedItemsPageState extends ConsumerState<ArchivedItemsPage> {
                   ),
                 ],
               ),
-              if (item.addons != null && item.addons!.isNotEmpty) ...[
+              if (item.attributes != null && item.attributes!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 const Divider(color: Colors.white24),
-                const Text('Addons:',
+                const Text('Attributes:',
                     style: TextStyle(
                         fontWeight: FontWeight.bold, color: Colors.white)),
-                ...item.addons!.map((a) => Padding(
-                      padding: const EdgeInsets.only(left: 8, top: 4),
-                      child: Text('- ${a.name} (\$${a.price})',
-                          style: const TextStyle(color: Colors.white70)),
-                    )),
-              ],
-              if (item.sizes != null && item.sizes!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Divider(color: Colors.white24),
-                const Text('Sizes:',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white)),
-                ...item.sizes!.map((s) => Padding(
+                ...item.attributes!.map((attr) => Padding(
                       padding: const EdgeInsets.only(left: 8, top: 4),
                       child: Text(
-                          '- ${s.sizeName} (+\$${s.additionalPrice.toStringAsFixed(2)})',
+                          '- ${attr.name} (${attr.type}) ${attr.isRequired ? "[Required]" : ""}',
                           style: const TextStyle(color: Colors.white70)),
                     )),
               ]
@@ -346,8 +334,7 @@ class _ArchivedItemsPageState extends ConsumerState<ArchivedItemsPage> {
                                 i,
                                 a,
                                 items)),
-                        const DataColumn(label: Text('Addons')),
-                        const DataColumn(label: Text('Sizes')),
+                        const DataColumn(label: Text('Attributes')),
                         const DataColumn(label: Text('Actions')),
                       ],
                       rows: items.map((item) {
@@ -392,8 +379,7 @@ class _ArchivedItemsPageState extends ConsumerState<ArchivedItemsPage> {
                               .firstWhere((cat) => cat.id == item.categoryId,
                                   orElse: () => state.categories.first)
                               .name)),
-                          DataCell(Text(item.addons?.length.toString() ?? '0')),
-                          DataCell(Text(item.sizes?.length.toString() ?? '0')),
+                          DataCell(Text(item.attributes?.length.toString() ?? '0')),
                           DataCell(
                             IconButton(
                               icon: const Icon(Icons.restore, color: Colors.green),

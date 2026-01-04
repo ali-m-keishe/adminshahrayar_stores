@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/category.dart';
 import '../models/menu_item.dart';
-import '../models/addon.dart';
-import '../models/item_size.dart';
+import '../models/attribute.dart';
+import '../models/attribute_value.dart';
 import '../models/storage_image.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
@@ -438,56 +438,160 @@ class MenuRepository {
     }
   }
 
-  /// 🔹 Fetch all addons
-  Future<List<Addon>> getAllAddons() async {
+  // ========== ATTRIBUTE METHODS ==========
+
+  /// 🔹 Fetch all attributes
+  Future<List<Attribute>> getAllAttributes() async {
     try {
-      print('Fetching all addons from Supabase...');
+      print('Fetching all attributes from Supabase...');
       final response = await _supabase
-          .from('addons')
+          .from('attributes')
           .select('*')
           .order('created_at', ascending: false);
 
-      print('✅ Addons fetched: ${response.length}');
+      print('✅ Attributes fetched: ${response.length}');
 
       return (response as List)
-          .map((json) => Addon.fromJson(json as Map<String, dynamic>))
+          .map((json) => Attribute.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e, stack) {
-      print('❌ Error fetching addons: $e');
+      print('❌ Error fetching attributes: $e');
       print(stack);
       return [];
     }
   }
 
-  /// 🔹 Add a new addon
-  Future<void> addAddon(Addon addon) async {
+  /// 🔹 Add a new attribute and return the created attribute with ID
+  Future<Attribute> addAttribute(Attribute attribute) async {
     try {
-      print('🟢 Adding new addon: ${addon.name}');
+      print('🟢 Adding new attribute: ${attribute.name}');
 
       final data = {
-        'name': addon.name,
-        'price': addon.price,
-        'created_at': addon.createdAt.toIso8601String(),
-        // don't include 'id' here - it's auto-generated
+        'name': attribute.name,
+        'type': attribute.type,
+        'is_required': attribute.isRequired,
+        'created_at': attribute.createdAt.toIso8601String(),
       };
 
-      await _supabase.from('addons').insert(data);
-      print('✅ Addon added successfully!');
+      final response = await _supabase.from('attributes').insert(data).select().single();
+      print('✅ Attribute added successfully!');
+      
+      return Attribute.fromJson(Map<String, dynamic>.from(response));
     } catch (e, stack) {
-      print('❌ Error adding addon: $e');
+      print('❌ Error adding attribute: $e');
       print(stack);
       rethrow;
     }
   }
 
-  /// 🔹 Delete addon
-  Future<void> deleteAddon(int id) async {
+  /// 🔹 Update an attribute
+  Future<void> updateAttribute(Attribute attribute) async {
     try {
-      print('🗑️ Deleting addon ID: $id');
-      await _supabase.from('addons').delete().eq('id', id);
-      print('✅ Addon deleted successfully!');
+      print('✏️ Updating attribute ID: ${attribute.id}');
+      await _supabase
+          .from('attributes')
+          .update({
+            'name': attribute.name,
+            'type': attribute.type,
+            'is_required': attribute.isRequired,
+          })
+          .eq('id', attribute.id);
+      print('✅ Attribute updated successfully!');
     } catch (e, stack) {
-      print('❌ Error deleting addon: $e');
+      print('❌ Error updating attribute: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// 🔹 Delete attribute
+  Future<void> deleteAttribute(int id) async {
+    try {
+      print('🗑️ Deleting attribute ID: $id');
+      // First delete all attribute values for this attribute
+      await _supabase.from('attribute_values').delete().eq('attribute_id', id);
+      // Then delete the attribute
+      await _supabase.from('attributes').delete().eq('id', id);
+      print('✅ Attribute deleted successfully!');
+    } catch (e, stack) {
+      print('❌ Error deleting attribute: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  // ========== ATTRIBUTE VALUE METHODS ==========
+
+  /// 🔹 Fetch all attribute values for a specific attribute
+  Future<List<AttributeValue>> getAttributeValues(int attributeId) async {
+    try {
+      print('Fetching attribute values for attribute ID: $attributeId');
+      final response = await _supabase
+          .from('attribute_values')
+          .select('*')
+          .eq('attribute_id', attributeId)
+          .order('created_at', ascending: false);
+
+      print('✅ Attribute values fetched: ${response.length}');
+
+      return (response as List)
+          .map((json) => AttributeValue.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e, stack) {
+      print('❌ Error fetching attribute values: $e');
+      print(stack);
+      return [];
+    }
+  }
+
+  /// 🔹 Add a new attribute value
+  Future<void> addAttributeValue(AttributeValue attributeValue) async {
+    try {
+      print('🟢 Adding new attribute value: ${attributeValue.name}');
+
+      final data = {
+        'attribute_id': attributeValue.attributeId,
+        'name': attributeValue.name,
+        'price': attributeValue.price,
+        'created_at': attributeValue.createdAt.toIso8601String(),
+      };
+
+      await _supabase.from('attribute_values').insert(data);
+      print('✅ Attribute value added successfully!');
+    } catch (e, stack) {
+      print('❌ Error adding attribute value: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// 🔹 Update an attribute value
+  Future<void> updateAttributeValue(AttributeValue attributeValue) async {
+    try {
+      print('✏️ Updating attribute value ID: ${attributeValue.id}');
+      await _supabase
+          .from('attribute_values')
+          .update({
+            'name': attributeValue.name,
+            'price': attributeValue.price,
+          })
+          .eq('id', attributeValue.id);
+      print('✅ Attribute value updated successfully!');
+    } catch (e, stack) {
+      print('❌ Error updating attribute value: $e');
+      print(stack);
+      rethrow;
+    }
+  }
+
+  /// 🔹 Delete attribute value
+  Future<void> deleteAttributeValue(int id) async {
+    try {
+      print('🗑️ Deleting attribute value ID: $id');
+      await _supabase.from('attribute_values').delete().eq('id', id);
+      print('✅ Attribute value deleted successfully!');
+    } catch (e, stack) {
+      print('❌ Error deleting attribute value: $e');
       print(stack);
       rethrow;
     }
@@ -592,34 +696,20 @@ class MenuRepository {
     }
   }
 
-  /// 🔹 Fetch all menu items (with category + optional addons & sizes)
+  /// 🔹 Fetch all menu items (with category + optional attributes)
   /// Only returns items where is_active = true
   Future<List<MenuItem>> getAllMenuItems() async {
     try {
       final response = await _supabase.from('items').select('''
       *,
       category:category_id (id, name, image, created_at),
-      item_addons (
-        addon:addon_id (*)
-      ),
-      item_sizes (*)
+      item_attributes (
+        attribute:attribute_id (id, name, type, is_required, created_at)
+      )
     ''').eq('is_active', true).order('category_id', ascending: true).order('position', ascending: true).order('created_at', ascending: false);
 
       final items = (response as List).map((json) {
         final map = Map<String, dynamic>.from(json);
-
-        // Flatten item_addons → addons
-        if (map['item_addons'] != null) {
-          map['addons'] = (map['item_addons'] as List)
-              .map((e) => e['addon'])
-              .where((a) => a != null)
-              .toList();
-        }
-
-        // Flatten item_sizes → sizes (all sizes)
-        if (map['item_sizes'] != null) {
-          map['sizes'] = (map['item_sizes'] as List).toList();
-        }
 
         if (map['category'] != null) {
           map['category_name'] = map['category']['name'];
@@ -664,10 +754,9 @@ class MenuRepository {
             .select('''
               *,
               category:category_id (id, name, image, created_at),
-              item_addons (
-                addon:addon_id (*)
-              ),
-              item_sizes (*)
+              item_attributes (
+                attribute:attribute_id (id, name, type, is_required, created_at)
+              )
             ''')
             .eq('category_id', categoryId)
             .eq('is_active', true)
@@ -686,10 +775,9 @@ class MenuRepository {
             .select('''
               *,
               category:category_id (id, name, image, created_at),
-              item_addons (
-                addon:addon_id (*)
-              ),
-              item_sizes (*)
+              item_attributes (
+                attribute:attribute_id (id, name, type, is_required, created_at)
+              )
             ''')
             .eq('is_active', true)
             .order('category_id', ascending: true)
@@ -708,19 +796,6 @@ class MenuRepository {
       // Parse items
       final items = (itemsResponse as List).map((json) {
         final map = Map<String, dynamic>.from(json);
-
-        // Flatten item_addons → addons
-        if (map['item_addons'] != null) {
-          map['addons'] = (map['item_addons'] as List)
-              .map((e) => e['addon'])
-              .where((a) => a != null)
-              .toList();
-        }
-
-        // Flatten item_sizes → sizes (all sizes)
-        if (map['item_sizes'] != null) {
-          map['sizes'] = (map['item_sizes'] as List).toList();
-        }
 
         if (map['category'] != null) {
           map['category_name'] = map['category']['name'];
@@ -893,7 +968,7 @@ class MenuRepository {
     }
   }
 
-  /// 🔹 Add a new menu item (with optional addons and sizes)
+  /// 🔹 Add a new menu item (with optional attributes)
   Future<void> addMenuItem({
     required String name,
     required String description,
@@ -902,8 +977,7 @@ class MenuRepository {
     String? imageUrl,
     int? position,
     String? arcNo,
-    List<Addon>? addons,
-    List<ItemSize>? sizes,
+    List<int>? attributeIds, // List of attribute IDs to link to the item
   }) async {
     try {
       print('🟢 Adding new menu item: $name');
@@ -936,33 +1010,18 @@ class MenuRepository {
       final newItem = (response as List).first as Map<String, dynamic>;
       final newItemId = newItem['id'] as int;
 
-      // 2️⃣ Link addons (if any selected) - CORRECTLY inserts into junction table
-      if (addons != null && addons.isNotEmpty) {
-        final addonData = addons
-            .map((a) => {
+      // 2️⃣ Link attributes (if any selected) - inserts into item_attributes junction table
+      if (attributeIds != null && attributeIds.isNotEmpty) {
+        final attributeData = attributeIds
+            .map((attrId) => {
                   'item_id': newItemId,
-                  'addon_id': a.id,
+                  'attribute_id': attrId,
                   'created_at': DateTime.now().toIso8601String(),
                 })
             .toList();
 
-        await _supabase.from('item_addons').insert(addonData);
-        print('✅ Linked ${addons.length} addons to item $newItemId');
-      }
-
-      // 3️⃣ Add sizes (if any)
-      if (sizes != null && sizes.isNotEmpty) {
-        final sizeData = sizes
-            .map((s) => {
-                  'item_id': newItemId,
-                  'size_name': s.sizeName,
-                  'additional_price': s.additionalPrice,
-                  'created_at': DateTime.now().toIso8601String(),
-                })
-            .toList();
-
-        await _supabase.from('item_sizes').insert(sizeData);
-        print('✅ Added ${sizes.length} sizes to item $newItemId');
+        await _supabase.from('item_attributes').insert(attributeData);
+        print('✅ Linked ${attributeIds.length} attributes to item $newItemId');
       }
 
       print('✅ Menu item added successfully!');
@@ -1013,10 +1072,9 @@ class MenuRepository {
           .select('''
       *,
       category:category_id (id, name, image, created_at),
-      item_addons (
-        addon:addon_id (*)
-      ),
-      item_sizes (*)
+      item_attributes (
+        attribute:attribute_id (id, name, type, is_required, created_at)
+      )
     ''')
           .eq('is_active', false)
           .order('category_id', ascending: true)
@@ -1025,19 +1083,6 @@ class MenuRepository {
 
       final items = (response as List).map((json) {
         final map = Map<String, dynamic>.from(json);
-
-        // Flatten item_addons → addons
-        if (map['item_addons'] != null) {
-          map['addons'] = (map['item_addons'] as List)
-              .map((e) => e['addon'])
-              .where((a) => a != null)
-              .toList();
-        }
-
-        // Flatten item_sizes → sizes (all sizes)
-        if (map['item_sizes'] != null) {
-          map['sizes'] = (map['item_sizes'] as List).toList();
-        }
 
         if (map['category'] != null) {
           map['category_name'] = map['category']['name'];
@@ -1081,10 +1126,9 @@ class MenuRepository {
             .select('''
               *,
               category:category_id (id, name, image, created_at),
-              item_addons (
-                addon:addon_id (*)
-              ),
-              item_sizes (*)
+              item_attributes (
+                attribute:attribute_id (id, name, type, is_required, created_at)
+              )
             ''')
             .eq('category_id', categoryId)
             .eq('is_active', false)
@@ -1103,10 +1147,9 @@ class MenuRepository {
             .select('''
               *,
               category:category_id (id, name, image, created_at),
-              item_addons (
-                addon:addon_id (*)
-              ),
-              item_sizes (*)
+              item_attributes (
+                attribute:attribute_id (id, name, type, is_required, created_at)
+              )
             ''')
             .eq('is_active', false)
             .order('category_id', ascending: true)
@@ -1125,19 +1168,6 @@ class MenuRepository {
       // Parse items
       final items = (itemsResponse as List).map((json) {
         final map = Map<String, dynamic>.from(json);
-
-        // Flatten item_addons → addons
-        if (map['item_addons'] != null) {
-          map['addons'] = (map['item_addons'] as List)
-              .map((e) => e['addon'])
-              .where((a) => a != null)
-              .toList();
-        }
-
-        // Flatten item_sizes → sizes (all sizes)
-        if (map['item_sizes'] != null) {
-          map['sizes'] = (map['item_sizes'] as List).toList();
-        }
 
         if (map['category'] != null) {
           map['category_name'] = map['category']['name'];
@@ -1162,7 +1192,7 @@ class MenuRepository {
     }
   }
 
-  /// 🔹 Update a menu item by ID (with addons and sizes)
+  /// 🔹 Update a menu item by ID (with attributes)
   Future<void> updateMenuItem({
     required int itemId,
     required String name,
@@ -1171,8 +1201,7 @@ class MenuRepository {
     required int categoryId,
     String? existingImageUrl,
     String? newImageUrl,
-    List<Addon>? addons,
-    List<ItemSize>? sizes,
+    List<int>? attributeIds, // List of attribute IDs to link to the item
     bool? isActive,
     int? position,
     String? arcNo,
@@ -1213,35 +1242,19 @@ class MenuRepository {
 
       await _supabase.from('items').update(updateData).eq('id', itemId);
 
-      // 2️⃣ Update addons: Delete old ones and insert new ones
-      await _supabase.from('item_addons').delete().eq('item_id', itemId);
+      // 2️⃣ Update attributes: Delete old ones and insert new ones
+      await _supabase.from('item_attributes').delete().eq('item_id', itemId);
 
-      if (addons != null && addons.isNotEmpty) {
-        final addonData = addons
-            .map((a) => {
+      if (attributeIds != null && attributeIds.isNotEmpty) {
+        final attributeData = attributeIds
+            .map((attrId) => {
                   'item_id': itemId,
-                  'addon_id': a.id,
+                  'attribute_id': attrId,
                   'created_at': DateTime.now().toIso8601String(),
                 })
             .toList();
-        await _supabase.from('item_addons').insert(addonData);
-        print('✅ Updated ${addons.length} addons for item $itemId');
-      }
-
-      // 3️⃣ Update sizes: Delete old ones and insert new ones
-      await _supabase.from('item_sizes').delete().eq('item_id', itemId);
-
-      if (sizes != null && sizes.isNotEmpty) {
-        final sizeData = sizes
-            .map((s) => {
-                  'item_id': itemId,
-                  'size_name': s.sizeName,
-                  'additional_price': s.additionalPrice,
-                  'created_at': DateTime.now().toIso8601String(),
-                })
-            .toList();
-        await _supabase.from('item_sizes').insert(sizeData);
-        print('✅ Updated ${sizes.length} sizes for item $itemId');
+        await _supabase.from('item_attributes').insert(attributeData);
+        print('✅ Updated ${attributeIds.length} attributes for item $itemId');
       }
 
       print('✅ Menu item updated successfully!');
