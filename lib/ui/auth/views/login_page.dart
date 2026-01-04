@@ -1,55 +1,60 @@
 import 'package:adminshahrayar_stores/theme.dart';
+import 'package:adminshahrayar_stores/ui/auth/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // TODO: Implement actual authentication logic
-      // For now, simulate a login delay
-      await Future.delayed(const Duration(seconds: 1));
+      final authViewModel = ref.read(authViewModelProvider.notifier);
+      final success = await authViewModel.signIn(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        // TODO: Navigate to main screen after successful login
-        // Navigator.of(context).pushReplacement(
-        //   MaterialPageRoute(builder: (context) => const MainScreen()),
-        // );
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login functionality to be implemented'),
-            backgroundColor: AppTheme.accentBlue,
-          ),
-        );
+        if (success) {
+          // Navigation will be handled by the router based on auth state
+          // No need to manually navigate here
+        } else {
+          final authState = ref.read(authViewModelProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authState.error ?? 'Login failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Clear any previous errors when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authViewModelProvider.notifier).clearError();
+    });
   }
 
   @override
@@ -111,11 +116,12 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 48),
                     
-                    // Username Field
+                    // Email Field
                     TextFormField(
-                      controller: _usernameController,
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
-                        labelText: 'Username',
+                        labelText: 'Email',
                         labelStyle: TextStyle(
                           color: isDark ? AppTheme.textLight : AppTheme.textDark,
                         ),
@@ -156,7 +162,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your username';
+                          return 'Please enter your email';
+                        }
+                        if (!value.contains('@')) {
+                          return 'Please enter a valid email';
                         }
                         return null;
                       },
@@ -168,7 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        labelText: 'Authentication',
+                        labelText: 'Password',
                         labelStyle: TextStyle(
                           color: isDark ? AppTheme.textLight : AppTheme.textDark,
                         ),
@@ -232,36 +241,76 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 32),
                     
-                    // Login Button
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.accentBlue,
-                        foregroundColor: AppTheme.textWhite,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppTheme.textWhite,
-                                ),
+                    // Error message display
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final authState = ref.watch(authViewModelProvider);
+                        if (authState.error != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.red),
                               ),
-                            )
-                          : const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      authState.error!,
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    
+                    // Login Button
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final authState = ref.watch(authViewModelProvider);
+                        final isLoading = authState.isLoading;
+                        
+                        return ElevatedButton(
+                          onPressed: isLoading ? null : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.accentBlue,
+                            foregroundColor: AppTheme.textWhite,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppTheme.textWhite,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        );
+                      },
                     ),
                   ],
                 ),

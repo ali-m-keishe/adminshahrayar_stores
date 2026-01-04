@@ -1,53 +1,98 @@
-// import 'package:adminshahrayar_stores/data/models/profile.dart';
-// import 'package:adminshahrayar_stores/data/repositories/auth_repository.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
+// lib/ui/auth/viewmodels/auth_viewmodel.dart
 
+import 'package:adminshahrayar_stores/data/models/auth_state.dart';
+import 'package:adminshahrayar_stores/data/repositories/auth_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// final authRepositoryProvider = Provider<AuthRepository>((ref) {
-//   return AuthRepository();
-// });
+class AuthViewModel extends StateNotifier<AuthState> {
+  final AuthRepository _authRepository;
 
-// final authViewModelProvider =
-//     StateNotifierProvider<AuthViewModel, AsyncValue<ProfileModel?>>((ref) {
-//   return AuthViewModel(ref);
-// });
+  AuthViewModel(this._authRepository) : super(AuthState.initial()) {
+    // Check if user is already authenticated on initialization
+    _checkAuthState();
+    // Listen to auth state changes
+    _listenToAuthChanges();
+  }
 
-// class AuthViewModel extends StateNotifier<AsyncValue<ProfileModel?>> {
-//   final Ref ref;
+  /// 🔹 Check current authentication state
+  Future<void> _checkAuthState() async {
+    if (_authRepository.isAuthenticated()) {
+      final user = _authRepository.getCurrentUser();
+      if (user != null) {
+        final isAdmin = await _authRepository.checkIsAdmin();
+        if (isAdmin) {
+          state = AuthState.authenticated(
+            userId: user.id,
+            userEmail: user.email ?? '',
+            isAdmin: true,
+          );
+        } else {
+          // Not admin, sign out
+          await signOut();
+        }
+      }
+    }
+  }
 
-//   AuthViewModel(this.ref) : super(const AsyncValue.data(null)) {
-//     _listenAuthState();
-//   }
+  /// 🔹 Listen to auth state changes
+  void _listenToAuthChanges() {
+    _authRepository.authStateChanges.listen((authStateChange) {
+      // Check the event type using dynamic access since we don't know the exact type
+      final event = (authStateChange as dynamic).event;
+      if (event != null) {
+        final eventString = event.toString();
+        if (eventString.contains('signedOut')) {
+          state = AuthState.initial();
+        } else if (eventString.contains('signedIn')) {
+          _checkAuthState();
+        }
+      }
+    });
+  }
 
-//   void _listenAuthState() {
-//     ref.read(authRepositoryProvider).authState.listen((session) async {
-//       if (session == null) {
-//         state = const AsyncValue.data(null);
-//       } else {
-//         await fetchProfile();
-//       }
-//     });
-//   }
+  /// 🔹 Sign in with email and password
+  Future<bool> signIn(String email, String password) async {
+    state = AuthState.loading();
 
-//   Future<void> fetchProfile() async {
-//     state = const AsyncValue.loading();
-//     final profile = await ref.read(authRepositoryProvider).getProfile();
-//     state = AsyncValue.data(profile);
-//   }
+    try {
+      final result = await _authRepository.signIn(email, password);
 
-//   Future<String?> signIn(String email, String password) async {
-//     final result =
-//         await ref.read(authRepositoryProvider).signIn(email, password);
+      if (result['success'] == true) {
+        state = AuthState.authenticated(
+          userId: result['userId'] as String,
+          userEmail: result['userEmail'] as String,
+          isAdmin: result['isAdmin'] as bool,
+        );
+        return true;
+      } else {
+        state = AuthState.error(result['error'] as String? ?? 'Sign in failed');
+        return false;
+      }
+    } catch (e) {
+      state = AuthState.error('An error occurred: $e');
+      return false;
+    }
+  }
 
-//     if (result == null) {
-//       await fetchProfile();
-//     }
+  /// 🔹 Sign out
+  Future<void> signOut() async {
+    try {
+      state = AuthState.loading();
+      await _authRepository.signOut();
+      state = AuthState.initial();
+    } catch (e) {
+      state = AuthState.error('Error signing out: $e');
+    }
+  }
 
-//     return result;
-//   }
+  /// 🔹 Clear error
+  void clearError() {
+    state = state.clearError();
+  }
+}
 
-//   Future<void> signOut() async {
-//     await ref.read(authRepositoryProvider).signOut();
-//     state = const AsyncValue.data(null);
-//   }
-// }
+final authViewModelProvider =
+    StateNotifierProvider<AuthViewModel, AuthState>((ref) {
+  final authRepository = ref.read(authRepositoryProvider);
+  return AuthViewModel(authRepository);
+});
